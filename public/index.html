@@ -13,15 +13,18 @@
 
   <main>
     <section id="connection-section" class="card">
-      <h2>1. חיבור לוואטסאפ</h2>
-      <div id="connection-status" class="status-line">בודק חיבור...</div>
-      <div id="qr-container"></div>
-      <button id="logout-btn" class="secondary" hidden>התנתקות</button>
+      <h2>1. חיבורי וואטסאפ</h2>
+      <p class="hint">אפשר לחבר כמה מספרי וואטסאפ (למשל שלך ושל בן/בת הזוג). כל מוזמן ישויך לחיבור המתאים דרך עמודת "צד" באקסל, לפי השם שנותנים לחיבור כאן.</p>
+      <div id="accounts-container"></div>
+      <div class="add-account-form">
+        <input type="text" id="add-account-input" placeholder="שם החיבור (למשל: אושרי)" />
+        <button id="add-account-btn" class="secondary">+ הוספת חיבור וואטסאפ</button>
+      </div>
     </section>
 
     <section id="upload-section" class="card">
       <h2>2. העלאת קובץ אקסל (אופציונלי)</h2>
-      <p class="hint">הקובץ צריך לכלול שתי עמודות: <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>. אפשר גם להוסיף מוזמנים ידנית בשלב הבא בלי להעלות קובץ.</p>
+      <p class="hint">הקובץ צריך לכלול שתי עמודות: <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>, ואופציונלית גם עמודת <strong>צד</strong> (לדוגמה "אושרי" או "מיקה") שקובעת מאיזה חיבור וואטסאפ תישלח ההזמנה. אפשר גם להוסיף מוזמנים ידנית בשלב הבא בלי להעלות קובץ.</p>
       <input type="file" id="file-input" accept=".xlsx,.xls,.csv" />
       <button id="upload-btn">העלאה</button>
       <div id="upload-error" class="error"></div>
@@ -32,6 +35,8 @@
       <div class="add-guest-form">
         <input type="text" id="add-name-input" placeholder="שם המוזמן" />
         <input type="text" id="add-phone-input" placeholder="מספר טלפון" />
+        <input type="text" id="add-side-input" placeholder="צד (אופציונלי)" list="account-labels" />
+        <datalist id="account-labels"></datalist>
         <button id="add-guest-btn" class="secondary">הוספת מוזמן</button>
       </div>
       <div id="add-guest-error" class="error"></div>
@@ -48,7 +53,8 @@
               <th></th>
               <th>שם המוזמן</th>
               <th>מספר טלפון</th>
-              <th>הודעה אישית</th>
+              <th>צד</th>
+              <th></th>
               <th></th>
             </tr>
           </thead>
@@ -60,6 +66,10 @@
     <section id="message-section" class="card">
       <h2>4. כתיבת ההודעה</h2>
       <p class="hint">אפשר להשתמש ב-<code>{{שם}}</code> בתוך ההודעה כדי שיוחלף בשם כל מוזמן. אפשר גם לערוך הודעה אישית לכל מוזמן בנפרד ברשימה למעלה - ההודעה האישית תישלח לו במקום התבנית הכללית.</p>
+
+      <label for="template-select" class="hint">תבנית מוכנה:</label>
+      <select id="template-select"></select>
+
       <textarea id="message-input" rows="8"></textarea>
 
       <h3>תמונת ההזמנה (אופציונלי)</h3>

@@ -1,19 +1,21 @@
 const state = {
   guests: [],
   selected: new Set(),
-  ready: false,
+  accounts: [],
   editingGuestId: null,
 };
 
 const el = {
-  connectionStatus: document.getElementById('connection-status'),
-  qrContainer: document.getElementById('qr-container'),
-  logoutBtn: document.getElementById('logout-btn'),
+  accountsContainer: document.getElementById('accounts-container'),
+  addAccountInput: document.getElementById('add-account-input'),
+  addAccountBtn: document.getElementById('add-account-btn'),
   fileInput: document.getElementById('file-input'),
   uploadBtn: document.getElementById('upload-btn'),
   uploadError: document.getElementById('upload-error'),
   addNameInput: document.getElementById('add-name-input'),
   addPhoneInput: document.getElementById('add-phone-input'),
+  addSideInput: document.getElementById('add-side-input'),
+  accountLabelsDatalist: document.getElementById('account-labels'),
   addGuestBtn: document.getElementById('add-guest-btn'),
   addGuestError: document.getElementById('add-guest-error'),
   guestsTableBody: document.querySelector('#guests-table tbody'),
@@ -22,6 +24,7 @@ const el = {
   deselectAllBtn: document.getElementById('deselect-all-btn'),
   selectedCount: document.getElementById('selected-count'),
   messageInput: document.getElementById('message-input'),
+  templateSelect: document.getElementById('template-select'),
   imageInput: document.getElementById('image-input'),
   imagePreviewContainer: document.getElementById('image-preview-container'),
   imageError: document.getElementById('image-error'),
@@ -34,38 +37,156 @@ const el = {
   failedList: document.getElementById('failed-list'),
 };
 
-el.messageInput.value =
-  'היי {{שם}}! 💍\nבשמחה רבה אנחנו מזמינים אותך לחתונה שלנו!\nנשמח לראותך בין אורחינו.\nפרטים נוספים יישלחו בקרוב ❤️';
+const MESSAGE_TEMPLATES = [
+  {
+    label: 'אישית עם שם',
+    text: 'היי {{שם}}! 💍\nבשמחה רבה אנחנו מזמינים אותך לחתונה שלנו!\nנשמח לראותך בין אורחינו.\nפרטים נוספים יישלחו בקרוב ❤️',
+  },
+  {
+    label: 'כללית בלי שם',
+    text: 'הנכם מוזמנים לחגוג איתנו! 💍\nבשמחה רבה אנחנו מתחתנים, ונשמח לראותכם בין אורחינו.\nפרטים נוספים יישלחו בקרוב ❤️',
+  },
+  {
+    label: 'רשמית',
+    text: 'בשמחה ובהתרגשות הננו מתכבדים להזמינכם לחתונתנו.\nנשמח מאוד לחגוג יחד איתכם את היום המיוחד הזה.\nפרטי הטקס והאירוע יישלחו בהמשך.\nבברכה,',
+  },
+  {
+    label: 'קלילה/חברים',
+    text: 'יאללה חברים 🎉 אנחנו מתחתנים!!\nבואו לרקוד איתנו ולחגוג את היום הכי שמח שלנו 💃🕺\nפרטים בקרוב, תשמרו תאריך!',
+  },
+  {
+    label: 'תזכורת לקראת האירוע',
+    text: 'היי {{שם}} 😊\nרק תזכורת קטנה - החתונה שלנו מתקרבת!\nנשמח לדעת שתגיעו, ומחכים לחגוג יחד ❤️',
+  },
+];
 
-async function fetchStatus() {
-  const res = await fetch('/api/status');
-  const data = await res.json();
-  renderStatus(data);
+function populateTemplateSelect() {
+  el.templateSelect.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- בחירת תבנית --';
+  el.templateSelect.appendChild(placeholder);
+
+  MESSAGE_TEMPLATES.forEach((template, idx) => {
+    const option = document.createElement('option');
+    option.value = String(idx);
+    option.textContent = template.label;
+    el.templateSelect.appendChild(option);
+  });
 }
 
-function renderStatus(data) {
-  state.ready = data.status === 'READY';
+el.templateSelect.addEventListener('change', () => {
+  const idx = el.templateSelect.value;
+  if (idx === '') return;
 
-  if (data.status === 'READY') {
-    el.connectionStatus.textContent = '✅ מחובר לוואטסאפ';
-    el.qrContainer.innerHTML = '';
-    el.logoutBtn.hidden = false;
-  } else if (data.status === 'QR' && data.qrDataUrl) {
-    el.connectionStatus.textContent = 'סרוק את קוד ה-QR עם הוואטסאפ בטלפון שלך (הגדרות > מכשירים מקושרים)';
-    el.qrContainer.innerHTML = `<img src="${data.qrDataUrl}" alt="QR" />`;
-    el.logoutBtn.hidden = true;
-  } else if (data.status === 'AUTHENTICATED') {
-    el.connectionStatus.textContent = 'מתחבר...';
-    el.qrContainer.innerHTML = '';
-  } else {
-    el.connectionStatus.textContent = 'מתחיל חיבור לוואטסאפ...';
-    el.qrContainer.innerHTML = '';
-    el.logoutBtn.hidden = true;
+  const template = MESSAGE_TEMPLATES[Number(idx)];
+  const hasContent = el.messageInput.value.trim().length > 0;
+  if (hasContent && !confirm('לטעון את התבנית ולהחליף את ההודעה הנוכחית?')) {
+    el.templateSelect.value = '';
+    return;
+  }
+
+  el.messageInput.value = template.text;
+  el.templateSelect.value = '';
+});
+
+populateTemplateSelect();
+el.messageInput.value = MESSAGE_TEMPLATES[0].text;
+
+function statusLabel(status) {
+  if (status === 'READY') return '✅ מחובר';
+  if (status === 'QR') return 'סרוק QR כדי לחבר';
+  if (status === 'AUTHENTICATED') return 'מתחבר...';
+  return 'מאתחל...';
+}
+
+async function fetchAccounts() {
+  const res = await fetch('/api/accounts');
+  const data = await res.json();
+  state.accounts = data.accounts;
+  renderAccounts();
+  renderGuests(); // side -> account resolution may have changed
+}
+
+function renderAccounts() {
+  el.accountsContainer.innerHTML = '';
+
+  for (const account of state.accounts) {
+    const card = document.createElement('div');
+    card.className = 'account-card';
+
+    const header = document.createElement('div');
+    header.className = 'account-card-header';
+
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.value = account.label;
+    labelInput.addEventListener('change', async () => {
+      await fetch(`/api/accounts/${account.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: labelInput.value }),
+      });
+      fetchAccounts();
+    });
+
+    const status = document.createElement('span');
+    status.className = 'status-line';
+    status.textContent = statusLabel(account.status);
+
+    header.append(labelInput, status);
+
+    if (account.status === 'READY') {
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'secondary';
+      logoutBtn.textContent = 'התנתקות';
+      logoutBtn.addEventListener('click', async () => {
+        await fetch(`/api/accounts/${account.id}/logout`, { method: 'POST' });
+        fetchAccounts();
+      });
+      header.appendChild(logoutBtn);
+    }
+
+    if (state.accounts.length > 1) {
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'secondary';
+      removeBtn.textContent = '🗑️ הסרה';
+      removeBtn.addEventListener('click', async () => {
+        if (!confirm(`להסיר את החיבור "${account.label}"?`)) return;
+        await fetch(`/api/accounts/${account.id}`, { method: 'DELETE' });
+        fetchAccounts();
+      });
+      header.appendChild(removeBtn);
+    }
+
+    card.appendChild(header);
+
+    if (account.status === 'QR' && account.qrDataUrl) {
+      const img = document.createElement('img');
+      img.src = account.qrDataUrl;
+      card.appendChild(img);
+    }
+
+    el.accountsContainer.appendChild(card);
+  }
+
+  el.accountLabelsDatalist.innerHTML = '';
+  for (const account of state.accounts) {
+    const option = document.createElement('option');
+    option.value = account.label;
+    el.accountLabelsDatalist.appendChild(option);
   }
 }
 
-el.logoutBtn.addEventListener('click', async () => {
-  await fetch('/api/logout', { method: 'POST' });
+el.addAccountBtn.addEventListener('click', async () => {
+  const label = el.addAccountInput.value.trim();
+  await fetch('/api/accounts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label }),
+  });
+  el.addAccountInput.value = '';
+  fetchAccounts();
 });
 
 el.uploadBtn.addEventListener('click', async () => {
@@ -100,6 +221,7 @@ el.addGuestBtn.addEventListener('click', async () => {
   el.addGuestError.textContent = '';
   const name = el.addNameInput.value.trim();
   const phone = el.addPhoneInput.value.trim();
+  const side = el.addSideInput.value.trim();
 
   if (!name || !phone) {
     el.addGuestError.textContent = 'יש להזין שם ומספר טלפון';
@@ -111,7 +233,7 @@ el.addGuestBtn.addEventListener('click', async () => {
     const res = await fetch('/api/guests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone }),
+      body: JSON.stringify({ name, phone, side }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -122,6 +244,7 @@ el.addGuestBtn.addEventListener('click', async () => {
     if (data.guest.valid) state.selected.add(data.guest.id);
     el.addNameInput.value = '';
     el.addPhoneInput.value = '';
+    el.addSideInput.value = '';
     el.addNameInput.focus();
     renderGuests();
   } catch (err) {
@@ -131,7 +254,7 @@ el.addGuestBtn.addEventListener('click', async () => {
   }
 });
 
-for (const input of [el.addNameInput, el.addPhoneInput]) {
+for (const input of [el.addNameInput, el.addPhoneInput, el.addSideInput]) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') el.addGuestBtn.click();
   });
@@ -188,16 +311,21 @@ function renderGuests() {
     (g) => g.name.toLowerCase().includes(query) || (g.phoneRaw || '').includes(query)
   );
 
+  const multipleAccounts = state.accounts.length > 1;
+
   el.guestsTableBody.innerHTML = '';
   for (const guest of filtered) {
+    const sideUnresolved = multipleAccounts && !guest.resolvedAccountId;
+    const canSend = guest.valid && !sideUnresolved;
+
     const tr = document.createElement('tr');
-    if (!guest.valid) tr.classList.add('invalid');
+    if (!canSend) tr.classList.add('invalid');
 
     const checkboxCell = document.createElement('td');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = state.selected.has(guest.id);
-    checkbox.disabled = !guest.valid;
+    checkbox.disabled = !canSend;
     checkbox.addEventListener('change', () => {
       if (checkbox.checked) state.selected.add(guest.id);
       else state.selected.delete(guest.id);
@@ -211,26 +339,42 @@ function renderGuests() {
     const phoneCell = document.createElement('td');
     phoneCell.textContent = guest.phoneRaw || guest.phone || '';
 
-    const messageCell = document.createElement('td');
+    const sideCell = document.createElement('td');
+    if (guest.resolvedAccountId) {
+      sideCell.textContent = guest.resolvedAccountLabel;
+    } else if (guest.side) {
+      sideCell.innerHTML = '';
+      const warning = document.createElement('span');
+      warning.className = 'side-warning';
+      warning.textContent = `⚠️ "${guest.side}" לא מזוהה`;
+      sideCell.appendChild(warning);
+    } else if (multipleAccounts) {
+      const warning = document.createElement('span');
+      warning.className = 'side-warning';
+      warning.textContent = '⚠️ לא הוגדר צד';
+      sideCell.appendChild(warning);
+    }
+
+    const editCell = document.createElement('td');
     const editBtn = document.createElement('button');
     editBtn.className = 'secondary';
-    editBtn.textContent = guest.customMessage ? '✏️ עריכה' : '✏️ הודעה אישית';
+    editBtn.textContent = '✏️ עריכה';
     editBtn.addEventListener('click', () => {
       state.editingGuestId = state.editingGuestId === guest.id ? null : guest.id;
       renderGuests();
     });
-    messageCell.appendChild(editBtn);
+    editCell.appendChild(editBtn);
     if (guest.customMessage) {
       const badge = document.createElement('span');
       badge.className = 'personal-badge';
-      badge.textContent = 'מותאם אישית';
-      messageCell.appendChild(badge);
+      badge.textContent = 'הודעה אישית';
+      editCell.appendChild(badge);
     }
 
     const flagCell = document.createElement('td');
     flagCell.textContent = guest.valid ? '' : '⚠️ מספר לא תקין';
 
-    tr.append(checkboxCell, nameCell, phoneCell, messageCell, flagCell);
+    tr.append(checkboxCell, nameCell, phoneCell, sideCell, editCell, flagCell);
     el.guestsTableBody.appendChild(tr);
 
     if (state.editingGuestId === guest.id) {
@@ -246,8 +390,35 @@ function buildEditorRow(guest) {
   editorTr.classList.add('editing-row');
 
   const cell = document.createElement('td');
-  cell.colSpan = 5;
+  cell.colSpan = 6;
   cell.className = 'custom-msg-editor';
+
+  const fieldsGrid = document.createElement('div');
+  fieldsGrid.className = 'edit-fields';
+
+  const nameField = document.createElement('div');
+  nameField.innerHTML = '<label>שם</label>';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.value = guest.name;
+  nameField.appendChild(nameInput);
+
+  const phoneField = document.createElement('div');
+  phoneField.innerHTML = '<label>טלפון</label>';
+  const phoneInput = document.createElement('input');
+  phoneInput.type = 'text';
+  phoneInput.value = guest.phoneRaw || guest.phone || '';
+  phoneField.appendChild(phoneInput);
+
+  const sideField = document.createElement('div');
+  sideField.innerHTML = '<label>צד</label>';
+  const sideInput = document.createElement('input');
+  sideInput.type = 'text';
+  sideInput.setAttribute('list', 'account-labels');
+  sideInput.value = guest.side || '';
+  sideField.appendChild(sideInput);
+
+  fieldsGrid.append(nameField, phoneField, sideField);
 
   const textarea = document.createElement('textarea');
   textarea.placeholder = 'הודעה אישית ל' + guest.name + ' (אם ריק - תישלח ההודעה הכללית)';
@@ -258,12 +429,26 @@ function buildEditorRow(guest) {
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = 'שמירה';
-  saveBtn.addEventListener('click', () => saveCustomMessage(guest.id, textarea.value));
+  saveBtn.addEventListener('click', () =>
+    saveGuestEdits(guest.id, {
+      name: nameInput.value,
+      phone: phoneInput.value,
+      side: sideInput.value,
+      customMessage: textarea.value,
+    })
+  );
 
-  const clearBtn = document.createElement('button');
-  clearBtn.className = 'secondary';
-  clearBtn.textContent = 'איפוס להודעה כללית';
-  clearBtn.addEventListener('click', () => saveCustomMessage(guest.id, ''));
+  const clearMessageBtn = document.createElement('button');
+  clearMessageBtn.className = 'secondary';
+  clearMessageBtn.textContent = 'איפוס הודעה להודעה כללית';
+  clearMessageBtn.addEventListener('click', () =>
+    saveGuestEdits(guest.id, {
+      name: nameInput.value,
+      phone: phoneInput.value,
+      side: sideInput.value,
+      customMessage: '',
+    })
+  );
 
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'secondary';
@@ -273,22 +458,22 @@ function buildEditorRow(guest) {
     renderGuests();
   });
 
-  actions.append(saveBtn, clearBtn, cancelBtn);
-  cell.append(textarea, actions);
+  actions.append(saveBtn, clearMessageBtn, cancelBtn);
+  cell.append(fieldsGrid, textarea, actions);
   editorTr.appendChild(cell);
   return editorTr;
 }
 
-async function saveCustomMessage(guestId, text) {
+async function saveGuestEdits(guestId, updates) {
   const res = await fetch(`/api/guests/${guestId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ customMessage: text }),
+    body: JSON.stringify(updates),
   });
   const data = await res.json();
   if (res.ok) {
-    const guest = state.guests.find((g) => g.id === guestId);
-    if (guest) guest.customMessage = data.guest.customMessage;
+    const idx = state.guests.findIndex((g) => g.id === guestId);
+    if (idx !== -1) state.guests[idx] = data.guest;
   }
   state.editingGuestId = null;
   renderGuests();
@@ -301,8 +486,10 @@ function updateSelectedCount() {
 el.searchInput.addEventListener('input', renderGuests);
 
 el.selectAllBtn.addEventListener('click', () => {
+  const multipleAccounts = state.accounts.length > 1;
   for (const g of state.guests) {
-    if (g.valid) state.selected.add(g.id);
+    const sideUnresolved = multipleAccounts && !g.resolvedAccountId;
+    if (g.valid && !sideUnresolved) state.selected.add(g.id);
   }
   renderGuests();
 });
@@ -315,8 +502,9 @@ el.deselectAllBtn.addEventListener('click', () => {
 el.sendBtn.addEventListener('click', async () => {
   el.sendError.textContent = '';
 
-  if (!state.ready) {
-    el.sendError.textContent = 'יש לחבר את הוואטסאפ לפני השליחה';
+  const anyReady = state.accounts.some((a) => a.status === 'READY');
+  if (!anyReady) {
+    el.sendError.textContent = 'יש לחבר לפחות חשבון וואטסאפ אחד לפני השליחה';
     return;
   }
   if (state.selected.size === 0) {
@@ -383,5 +571,5 @@ function pollProgress(jobId) {
 
 renderGuests();
 loadExistingImage();
-fetchStatus();
-setInterval(fetchStatus, 2500);
+fetchAccounts();
+setInterval(fetchAccounts, 2500);

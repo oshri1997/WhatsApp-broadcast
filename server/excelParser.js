@@ -3,6 +3,7 @@ const { normalizePhone, isPlausiblePhone } = require('./phone');
 
 const NAME_HEADERS = ['שם המוזמן', 'שם', 'name'];
 const PHONE_HEADERS = ['מספר טלפון', 'טלפון', 'phone'];
+const SIDE_HEADERS = ['צד', 'side'];
 
 function cellText(cell) {
   if (cell == null) return '';
@@ -46,6 +47,7 @@ async function parseGuestsFromBuffer(buffer) {
   const headerRow = sheet.getRow(1);
   const nameCol = findColumnIndex(headerRow, NAME_HEADERS);
   const phoneCol = findColumnIndex(headerRow, PHONE_HEADERS);
+  const sideCol = findColumnIndex(headerRow, SIDE_HEADERS);
 
   if (nameCol === -1 || phoneCol === -1) {
     throw new Error('לא נמצאו העמודות "שם המוזמן" ו/או "מספר טלפון" בקובץ');
@@ -58,6 +60,7 @@ async function parseGuestsFromBuffer(buffer) {
     const row = sheet.getRow(r);
     const name = cellText(row.getCell(nameCol)).trim();
     const phoneRaw = cellText(row.getCell(phoneCol)).trim();
+    const side = sideCol !== -1 ? cellText(row.getCell(sideCol)).trim() : '';
 
     if (!name && !phoneRaw) continue;
 
@@ -68,6 +71,7 @@ async function parseGuestsFromBuffer(buffer) {
       name: name || '(ללא שם)',
       phone: normalized,
       phoneRaw,
+      side,
       valid: isPlausiblePhone(normalized),
     });
   }

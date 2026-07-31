@@ -1,4 +1,4 @@
-const whatsapp = require('./whatsappClient');
+const accounts = require('./accounts');
 
 const jobs = new Map();
 let nextJobId = 1;
@@ -48,7 +48,7 @@ async function runJob(job, guests, messageTemplate, image) {
 
     try {
       const text = renderMessage(messageTemplate, guest);
-      await whatsapp.sendMessage(guest.phone, text, image);
+      await accounts.sendMessage(guest.accountId, guest.phone, text, image);
       job.sent++;
     } catch (err) {
       job.failed.push({ name: guest.name, phone: guest.phoneRaw || guest.phone, reason: err.message });

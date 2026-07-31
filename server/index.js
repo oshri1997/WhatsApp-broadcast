@@ -13,7 +13,7 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
 });
 
-const whatsapp = require('./whatsappClient');
+const accounts = require('./accounts');
 const { parseGuestsFromBuffer } = require('./excelParser');
 const { normalizePhone, isPlausiblePhone } = require('./phone');
 const sendJobs = require('./sendJobs');
@@ -29,22 +29,57 @@ let guests = [];
 let nextGuestId = 1;
 let invitationImage = null; // { data (base64), mimetype, filename }
 
-app.get('/api/status', (req, res) => {
-  const status = whatsapp.getStatus();
-  if (status.status === 'DISCONNECTED') {
-    whatsapp.init();
-  }
-  res.json(status);
+// Decides which WhatsApp account should send to a given guest. With a single
+// connected account, everyone routes through it regardless of the "side"
+// column. With two or more, the guest's side must match a configured
+// account's label (case/whitespace-insensitive).
+function resolveAccount(guest) {
+  const list = accounts.list();
+  if (list.length === 1) return list[0];
+  if (!guest.side) return null;
+  return accounts.findByLabel(guest.side);
+}
+
+function withResolution(guest) {
+  const account = resolveAccount(guest);
+  return {
+    ...guest,
+    resolvedAccountId: account ? account.id : null,
+    resolvedAccountLabel: account ? account.label : null,
+  };
+}
+
+app.get('/api/accounts', (req, res) => {
+  accounts.retryDisconnected();
+  res.json({ accounts: accounts.list() });
 });
 
-app.post('/api/logout', async (req, res) => {
+app.post('/api/accounts', (req, res) => {
+  const { label } = req.body || {};
+  const id = accounts.create(label);
+  res.json({ account: accounts.list().find((a) => a.id === id) });
+});
+
+app.patch('/api/accounts/:id', (req, res) => {
+  const { label } = req.body || {};
+  const account = accounts.rename(req.params.id, label);
+  if (!account) return res.status(404).json({ error: 'חיבור לא נמצא' });
+  res.json({ account: accounts.list().find((a) => a.id === req.params.id) });
+});
+
+app.post('/api/accounts/:id/logout', async (req, res) => {
   try {
-    await whatsapp.logout();
-    whatsapp.init();
+    await accounts.logout(req.params.id);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
+});
+
+app.delete('/api/accounts/:id', async (req, res) => {
+  const ok = await accounts.remove(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'חיבור לא נמצא' });
+  res.json({ ok: true });
 });
 
 app.post('/api/upload', upload.single('file'), async (req, res) => {
@@ -54,18 +89,18 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     guests = await parseGuestsFromBuffer(req.file.buffer);
     nextGuestId = guests.length + 1;
-    res.json({ guests });
+    res.json({ guests: guests.map(withResolution) });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
 app.get('/api/guests', (req, res) => {
-  res.json({ guests });
+  res.json({ guests: guests.map(withResolution) });
 });
 
 app.post('/api/guests', (req, res) => {
-  const { name, phone } = req.body || {};
+  const { name, phone, side } = req.body || {};
 
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'יש להזין שם' });
@@ -80,10 +115,11 @@ app.post('/api/guests', (req, res) => {
     name: name.trim(),
     phone: normalized,
     phoneRaw: phone.trim(),
+    side: side && side.trim() ? side.trim() : '',
     valid: isPlausiblePhone(normalized),
   };
   guests.push(guest);
-  res.json({ guest });
+  res.json({ guest: withResolution(guest) });
 });
 
 app.patch('/api/guests/:id', (req, res) => {
@@ -93,9 +129,26 @@ app.patch('/api/guests/:id', (req, res) => {
     return res.status(404).json({ error: 'מוזמן לא נמצא' });
   }
 
-  const { customMessage } = req.body || {};
-  guest.customMessage = customMessage && customMessage.trim() ? customMessage : null;
-  res.json({ guest });
+  const { name, phone, side, customMessage } = req.body || {};
+
+  if (name !== undefined) {
+    if (!name.trim()) return res.status(400).json({ error: 'יש להזין שם' });
+    guest.name = name.trim();
+  }
+  if (phone !== undefined) {
+    if (!phone.trim()) return res.status(400).json({ error: 'יש להזין מספר טלפון' });
+    guest.phoneRaw = phone.trim();
+    guest.phone = normalizePhone(phone);
+    guest.valid = isPlausiblePhone(guest.phone);
+  }
+  if (side !== undefined) {
+    guest.side = side && side.trim() ? side.trim() : '';
+  }
+  if (customMessage !== undefined) {
+    guest.customMessage = customMessage && customMessage.trim() ? customMessage : null;
+  }
+
+  res.json({ guest: withResolution(guest) });
 });
 
 app.post('/api/invitation-image', uploadImage.single('image'), (req, res) => {
@@ -128,8 +181,8 @@ app.delete('/api/invitation-image', (req, res) => {
 app.post('/api/send', (req, res) => {
   const { guestIds, message } = req.body || {};
 
-  if (whatsapp.getStatus().status !== 'READY') {
-    return res.status(400).json({ error: 'הוואטסאפ עדיין לא מחובר' });
+  if (!accounts.list().some((a) => a.status === 'READY')) {
+    return res.status(400).json({ error: 'אין אף חשבון וואטסאפ מחובר' });
   }
   if (!Array.isArray(guestIds) || guestIds.length === 0) {
     return res.status(400).json({ error: 'לא נבחרו מוזמנים' });
@@ -139,10 +192,15 @@ app.post('/api/send', (req, res) => {
   }
 
   const idSet = new Set(guestIds);
-  const selected = guests.filter((g) => idSet.has(g.id) && g.valid);
+  const selected = guests
+    .filter((g) => idSet.has(g.id) && g.valid)
+    .map((g) => ({ ...g, accountId: resolveAccount(g)?.id || null }))
+    .filter((g) => g.accountId);
 
   if (selected.length === 0) {
-    return res.status(400).json({ error: 'אף אחד מהמוזמנים שנבחרו אינו בעל מספר טלפון תקין' });
+    return res.status(400).json({
+      error: 'לאף אחד מהמוזמנים שנבחרו אין מספר טלפון תקין וצד מחובר שמזוהה עם חשבון וואטסאפ',
+    });
   }
 
   const jobId = sendJobs.createJob(selected, message, invitationImage);
@@ -166,5 +224,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
-  whatsapp.init();
+  accounts.ensureDefault();
 });

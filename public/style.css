@@ -77,6 +77,17 @@ button.secondary:hover {
   background: #dcd4f2;
 }
 
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  margin-bottom: 10px;
+  background: white;
+}
+
 input[type="text"],
 input[type="file"],
 textarea {
@@ -97,12 +108,58 @@ textarea {
   margin-bottom: 10px;
 }
 
-#qr-container img {
-  max-width: 260px;
+.account-card {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.account-card-header input[type="text"] {
+  width: auto;
+  flex: 1;
+  min-width: 100px;
+  font-weight: bold;
+}
+
+.account-card .status-line {
+  margin: 0;
+}
+
+.account-card button {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.account-card img {
+  max-width: 220px;
   display: block;
-  margin: 12px auto;
+  margin: 12px auto 0;
   border: 8px solid white;
   box-shadow: 0 0 0 1px #ddd;
+}
+
+.add-account-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.add-account-form input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.add-account-form button {
+  white-space: nowrap;
 }
 
 .error {
@@ -224,6 +281,32 @@ tr.editing-row td {
   color: #5b3f9e;
   border-radius: 6px;
   padding: 2px 6px;
+}
+
+.side-warning {
+  font-size: 0.75rem;
+  background: #fbe4e1;
+  color: #c0392b;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.edit-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.edit-fields input {
+  margin: 0;
+}
+
+.edit-fields label {
+  font-size: 0.8rem;
+  color: #666;
+  display: block;
+  margin-bottom: 4px;
 }
 
 .progress-bar {
