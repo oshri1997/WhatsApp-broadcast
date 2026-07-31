@@ -104,8 +104,17 @@ async function fetchAccounts() {
   const res = await fetch('/api/accounts');
   const data = await res.json();
   state.accounts = data.accounts;
-  renderAccounts();
-  renderGuests(); // side -> account resolution may have changed
+
+  // Both render functions tear down and rebuild their DOM from scratch, which
+  // would wipe out an in-progress edit (guest editor textarea, account rename
+  // input) every time this polls. Skip rebuilding whatever the user is
+  // actively editing.
+  if (!el.accountsContainer.contains(document.activeElement)) {
+    renderAccounts();
+  }
+  if (state.editingGuestId === null) {
+    renderGuests(); // side -> account resolution may have changed
+  }
 }
 
 function renderAccounts() {
@@ -569,7 +578,15 @@ function pollProgress(jobId) {
   }, 1500);
 }
 
-renderGuests();
+async function loadExistingGuests() {
+  const res = await fetch('/api/guests');
+  const data = await res.json();
+  state.guests = data.guests;
+  state.selected = new Set(data.guests.filter((g) => g.valid).map((g) => g.id));
+  renderGuests();
+}
+
+loadExistingGuests();
 loadExistingImage();
 fetchAccounts();
 setInterval(fetchAccounts, 2500);
