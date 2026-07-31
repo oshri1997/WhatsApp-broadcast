@@ -1,0 +1,186 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f4f1f8;
+  margin: 0;
+  color: #2c2c2c;
+}
+
+header {
+  background: linear-gradient(135deg, #b18cd9, #7e6bd6);
+  color: white;
+  padding: 24px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+main {
+  max-width: 800px;
+  margin: 24px auto;
+  padding: 0 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+  color: #5b3f9e;
+}
+
+.hint {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+button {
+  background: #7e6bd6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+button:hover {
+  background: #6a58c4;
+}
+
+button:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: #e8e3f7;
+  color: #5b3f9e;
+}
+
+button.secondary:hover {
+  background: #dcd4f2;
+}
+
+input[type="text"],
+input[type="file"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.status-line {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+#qr-container img {
+  max-width: 260px;
+  display: block;
+  margin: 12px auto;
+  border: 8px solid white;
+  box-shadow: 0 0 0 1px #ddd;
+}
+
+.error {
+  color: #c0392b;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
+.guests-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.guests-toolbar input {
+  flex: 1;
+  min-width: 160px;
+}
+
+#selected-count {
+  margin-inline-start: auto;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.table-wrap {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 8px 10px;
+  text-align: right;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+th {
+  background: #f7f4fc;
+  position: sticky;
+  top: 0;
+}
+
+tr.invalid td {
+  color: #c0392b;
+}
+
+.progress-bar {
+  background: #eee;
+  border-radius: 8px;
+  height: 16px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: #7e6bd6;
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+#progress-text {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+#failed-list {
+  margin-top: 10px;
+  padding-inline-start: 20px;
+  color: #c0392b;
+  font-size: 0.9rem;
+}

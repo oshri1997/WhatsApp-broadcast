@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הזמנות חתונה בוואטסאפ</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>💌 שליחת הזמנות חתונה בוואטסאפ</h1>
+  </header>
+
+  <main>
+    <section id="connection-section" class="card">
+      <h2>1. חיבור לוואטסאפ</h2>
+      <div id="connection-status" class="status-line">בודק חיבור...</div>
+      <div id="qr-container"></div>
+      <button id="logout-btn" class="secondary" hidden>התנתקות</button>
+    </section>
+
+    <section id="upload-section" class="card">
+      <h2>2. העלאת קובץ אקסל</h2>
+      <p class="hint">הקובץ צריך לכלול שתי עמודות: <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>.</p>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" />
+      <button id="upload-btn">העלאה</button>
+      <div id="upload-error" class="error"></div>
+    </section>
+
+    <section id="guests-section" class="card" hidden>
+      <h2>3. רשימת מוזמנים</h2>
+      <div class="guests-toolbar">
+        <input type="text" id="search-input" placeholder="חיפוש לפי שם או טלפון..." />
+        <button id="select-all-btn" class="secondary">בחר הכל</button>
+        <button id="deselect-all-btn" class="secondary">בטל בחירה</button>
+        <span id="selected-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="guests-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>שם המוזמן</th>
+              <th>מספר טלפון</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="message-section" class="card" hidden>
+      <h2>4. כתיבת ההודעה</h2>
+      <p class="hint">אפשר להשתמש ב-<code>{{שם}}</code> בתוך ההודעה כדי שיוחלף בשם כל מוזמן.</p>
+      <textarea id="message-input" rows="8"></textarea>
+      <button id="send-btn">שליחת הזמנות</button>
+      <div id="send-error" class="error"></div>
+    </section>
+
+    <section id="progress-section" class="card" hidden>
+      <h2>התקדמות שליחה</h2>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div id="progress-text"></div>
+      <div id="progress-current" class="hint"></div>
+      <ul id="failed-list"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

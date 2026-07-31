@@ -1,0 +1,17 @@
+{
+  "name": "wedding-whatsapp-broadcast",
+  "version": "1.0.0",
+  "description": "Send WhatsApp wedding invitations to guests imported from an Excel file",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.2.0",
+    "qrcode": "^1.5.3",
+    "whatsapp-web.js": "^1.26.0",
+    "exceljs": "^4.4.0"
+  }
+}
