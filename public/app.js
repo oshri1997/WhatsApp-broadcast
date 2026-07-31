@@ -2,6 +2,7 @@ const state = {
   guests: [],
   selected: new Set(),
   ready: false,
+  editingGuestId: null,
 };
 
 const el = {
@@ -21,6 +22,9 @@ const el = {
   deselectAllBtn: document.getElementById('deselect-all-btn'),
   selectedCount: document.getElementById('selected-count'),
   messageInput: document.getElementById('message-input'),
+  imageInput: document.getElementById('image-input'),
+  imagePreviewContainer: document.getElementById('image-preview-container'),
+  imageError: document.getElementById('image-error'),
   sendBtn: document.getElementById('send-btn'),
   sendError: document.getElementById('send-error'),
   progressSection: document.getElementById('progress-section'),
@@ -133,6 +137,51 @@ for (const input of [el.addNameInput, el.addPhoneInput]) {
   });
 }
 
+function renderImagePreview(dataUrl) {
+  el.imagePreviewContainer.innerHTML = '';
+  if (!dataUrl) return;
+
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'secondary';
+  removeBtn.textContent = 'הסרת תמונה';
+  removeBtn.addEventListener('click', async () => {
+    await fetch('/api/invitation-image', { method: 'DELETE' });
+    el.imageInput.value = '';
+    renderImagePreview(null);
+  });
+
+  el.imagePreviewContainer.append(img, removeBtn);
+}
+
+el.imageInput.addEventListener('change', async () => {
+  el.imageError.textContent = '';
+  const file = el.imageInput.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/invitation-image', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      el.imageError.textContent = data.error || 'שגיאה בהעלאת התמונה';
+      return;
+    }
+    renderImagePreview(data.dataUrl);
+  } catch (err) {
+    el.imageError.textContent = 'שגיאה בהעלאת התמונה: ' + err.message;
+  }
+});
+
+async function loadExistingImage() {
+  const res = await fetch('/api/invitation-image');
+  const data = await res.json();
+  renderImagePreview(data.dataUrl);
+}
+
 function renderGuests() {
   const query = el.searchInput.value.trim().toLowerCase();
   const filtered = state.guests.filter(
@@ -162,14 +211,87 @@ function renderGuests() {
     const phoneCell = document.createElement('td');
     phoneCell.textContent = guest.phoneRaw || guest.phone || '';
 
+    const messageCell = document.createElement('td');
+    const editBtn = document.createElement('button');
+    editBtn.className = 'secondary';
+    editBtn.textContent = guest.customMessage ? '✏️ עריכה' : '✏️ הודעה אישית';
+    editBtn.addEventListener('click', () => {
+      state.editingGuestId = state.editingGuestId === guest.id ? null : guest.id;
+      renderGuests();
+    });
+    messageCell.appendChild(editBtn);
+    if (guest.customMessage) {
+      const badge = document.createElement('span');
+      badge.className = 'personal-badge';
+      badge.textContent = 'מותאם אישית';
+      messageCell.appendChild(badge);
+    }
+
     const flagCell = document.createElement('td');
     flagCell.textContent = guest.valid ? '' : '⚠️ מספר לא תקין';
 
-    tr.append(checkboxCell, nameCell, phoneCell, flagCell);
+    tr.append(checkboxCell, nameCell, phoneCell, messageCell, flagCell);
     el.guestsTableBody.appendChild(tr);
+
+    if (state.editingGuestId === guest.id) {
+      el.guestsTableBody.appendChild(buildEditorRow(guest));
+    }
   }
 
   updateSelectedCount();
+}
+
+function buildEditorRow(guest) {
+  const editorTr = document.createElement('tr');
+  editorTr.classList.add('editing-row');
+
+  const cell = document.createElement('td');
+  cell.colSpan = 5;
+  cell.className = 'custom-msg-editor';
+
+  const textarea = document.createElement('textarea');
+  textarea.placeholder = 'הודעה אישית ל' + guest.name + ' (אם ריק - תישלח ההודעה הכללית)';
+  textarea.value = guest.customMessage || '';
+
+  const actions = document.createElement('div');
+  actions.className = 'editor-actions';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'שמירה';
+  saveBtn.addEventListener('click', () => saveCustomMessage(guest.id, textarea.value));
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'secondary';
+  clearBtn.textContent = 'איפוס להודעה כללית';
+  clearBtn.addEventListener('click', () => saveCustomMessage(guest.id, ''));
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'secondary';
+  cancelBtn.textContent = 'ביטול';
+  cancelBtn.addEventListener('click', () => {
+    state.editingGuestId = null;
+    renderGuests();
+  });
+
+  actions.append(saveBtn, clearBtn, cancelBtn);
+  cell.append(textarea, actions);
+  editorTr.appendChild(cell);
+  return editorTr;
+}
+
+async function saveCustomMessage(guestId, text) {
+  const res = await fetch(`/api/guests/${guestId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customMessage: text }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    const guest = state.guests.find((g) => g.id === guestId);
+    if (guest) guest.customMessage = data.guest.customMessage;
+  }
+  state.editingGuestId = null;
+  renderGuests();
 }
 
 function updateSelectedCount() {
@@ -260,5 +382,6 @@ function pollProgress(jobId) {
 }
 
 renderGuests();
+loadExistingImage();
 fetchStatus();
 setInterval(fetchStatus, 2500);

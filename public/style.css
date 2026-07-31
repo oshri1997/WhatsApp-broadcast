@@ -177,6 +177,55 @@ tr.invalid td {
   color: #c0392b;
 }
 
+h3 {
+  color: #5b3f9e;
+  font-size: 1rem;
+  margin-top: 20px;
+}
+
+#image-preview-container {
+  margin-top: 10px;
+}
+
+#image-preview-container img {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 8px;
+  display: block;
+  box-shadow: 0 0 0 1px #ddd;
+}
+
+#image-preview-container button {
+  margin-top: 8px;
+}
+
+tr.editing-row td {
+  background: #faf8ff;
+  padding: 12px 10px;
+}
+
+.custom-msg-editor textarea {
+  min-height: 80px;
+  margin-bottom: 8px;
+}
+
+.custom-msg-editor .editor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-msg-editor button {
+  margin-top: 0;
+}
+
+.personal-badge {
+  font-size: 0.75rem;
+  background: #e8e3f7;
+  color: #5b3f9e;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
 .progress-bar {
   background: #eee;
   border-radius: 8px;

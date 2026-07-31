@@ -20,12 +20,14 @@ const sendJobs = require('./sendJobs');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const uploadImage = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 let guests = [];
 let nextGuestId = 1;
+let invitationImage = null; // { data (base64), mimetype, filename }
 
 app.get('/api/status', (req, res) => {
   const status = whatsapp.getStatus();
@@ -84,6 +86,45 @@ app.post('/api/guests', (req, res) => {
   res.json({ guest });
 });
 
+app.patch('/api/guests/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const guest = guests.find((g) => g.id === id);
+  if (!guest) {
+    return res.status(404).json({ error: 'מוזמן לא נמצא' });
+  }
+
+  const { customMessage } = req.body || {};
+  guest.customMessage = customMessage && customMessage.trim() ? customMessage : null;
+  res.json({ guest });
+});
+
+app.post('/api/invitation-image', uploadImage.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'לא הועלתה תמונה' });
+  }
+  if (!req.file.mimetype.startsWith('image/')) {
+    return res.status(400).json({ error: 'הקובץ שהועלה אינו תמונה' });
+  }
+
+  invitationImage = {
+    data: req.file.buffer.toString('base64'),
+    mimetype: req.file.mimetype,
+    filename: req.file.originalname,
+  };
+
+  res.json({ dataUrl: `data:${invitationImage.mimetype};base64,${invitationImage.data}` });
+});
+
+app.get('/api/invitation-image', (req, res) => {
+  if (!invitationImage) return res.json({ dataUrl: null });
+  res.json({ dataUrl: `data:${invitationImage.mimetype};base64,${invitationImage.data}` });
+});
+
+app.delete('/api/invitation-image', (req, res) => {
+  invitationImage = null;
+  res.json({ ok: true });
+});
+
 app.post('/api/send', (req, res) => {
   const { guestIds, message } = req.body || {};
 
@@ -104,7 +145,7 @@ app.post('/api/send', (req, res) => {
     return res.status(400).json({ error: 'אף אחד מהמוזמנים שנבחרו אינו בעל מספר טלפון תקין' });
   }
 
-  const jobId = sendJobs.createJob(selected, message);
+  const jobId = sendJobs.createJob(selected, message, invitationImage);
   res.json({ jobId });
 });
 
@@ -112,6 +153,14 @@ app.get('/api/send/:jobId/progress', (req, res) => {
   const job = sendJobs.getJob(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'לא נמצאה משימת שליחה' });
   res.json(job);
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: 'הקובץ גדול מדי' });
+  }
+  console.error(err);
+  res.status(500).json({ error: 'שגיאת שרת' });
 });
 
 const PORT = process.env.PORT || 3000;

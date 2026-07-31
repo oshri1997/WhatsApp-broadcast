@@ -48,6 +48,7 @@
               <th></th>
               <th>שם המוזמן</th>
               <th>מספר טלפון</th>
+              <th>הודעה אישית</th>
               <th></th>
             </tr>
           </thead>
@@ -58,8 +59,15 @@
 
     <section id="message-section" class="card">
       <h2>4. כתיבת ההודעה</h2>
-      <p class="hint">אפשר להשתמש ב-<code>{{שם}}</code> בתוך ההודעה כדי שיוחלף בשם כל מוזמן.</p>
+      <p class="hint">אפשר להשתמש ב-<code>{{שם}}</code> בתוך ההודעה כדי שיוחלף בשם כל מוזמן. אפשר גם לערוך הודעה אישית לכל מוזמן בנפרד ברשימה למעלה - ההודעה האישית תישלח לו במקום התבנית הכללית.</p>
       <textarea id="message-input" rows="8"></textarea>
+
+      <h3>תמונת ההזמנה (אופציונלי)</h3>
+      <p class="hint">אם מעלים תמונה, היא תישלח לכולם עם ההודעה כתיאור מתחתיה.</p>
+      <input type="file" id="image-input" accept="image/*" />
+      <div id="image-preview-container"></div>
+      <div id="image-error" class="error"></div>
+
       <button id="send-btn">שליחת הזמנות</button>
       <div id="send-error" class="error"></div>
     </section>

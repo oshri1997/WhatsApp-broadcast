@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
 const state = {
@@ -75,13 +75,19 @@ function getStatus() {
   return { status: state.status, qrDataUrl: state.qrDataUrl };
 }
 
-async function sendMessage(phone, text) {
+async function sendMessage(phone, text, image) {
   const chatId = `${phone}@c.us`;
   const isRegistered = await state.client.isRegisteredUser(chatId);
   if (!isRegistered) {
     throw new Error('המספר אינו רשום בוואטסאפ');
   }
-  await state.client.sendMessage(chatId, text);
+
+  if (image) {
+    const media = new MessageMedia(image.mimetype, image.data, image.filename);
+    await state.client.sendMessage(chatId, media, { caption: text });
+  } else {
+    await state.client.sendMessage(chatId, text);
+  }
 }
 
 async function logout() {

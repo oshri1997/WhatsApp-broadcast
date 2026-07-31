@@ -13,16 +13,15 @@ function randomDelay() {
 }
 
 function renderMessage(template, guest) {
-  return template
-    .replaceAll('{{שם}}', guest.name)
-    .replaceAll('{{name}}', guest.name);
+  const base = guest.customMessage && guest.customMessage.trim() ? guest.customMessage : template;
+  return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name);
 }
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createJob(guests, messageTemplate) {
+function createJob(guests, messageTemplate, image) {
   const id = String(nextJobId++);
   const job = {
     id,
@@ -34,7 +33,7 @@ function createJob(guests, messageTemplate) {
   };
   jobs.set(id, job);
 
-  runJob(job, guests, messageTemplate).catch((err) => {
+  runJob(job, guests, messageTemplate, image).catch((err) => {
     job.status = 'done';
     job.error = err.message;
   });
@@ -42,14 +41,14 @@ function createJob(guests, messageTemplate) {
   return id;
 }
 
-async function runJob(job, guests, messageTemplate) {
+async function runJob(job, guests, messageTemplate, image) {
   for (let i = 0; i < guests.length; i++) {
     const guest = guests[i];
     job.current = guest.name;
 
     try {
       const text = renderMessage(messageTemplate, guest);
-      await whatsapp.sendMessage(guest.phone, text);
+      await whatsapp.sendMessage(guest.phone, text, image);
       job.sent++;
     } catch (err) {
       job.failed.push({ name: guest.name, phone: guest.phoneRaw || guest.phone, reason: err.message });
