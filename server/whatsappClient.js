@@ -8,9 +8,17 @@ const state = {
 };
 
 function buildClient() {
-  const puppeteerOptions = {
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  };
+  const args = ['--no-sandbox', '--disable-setuid-sandbox'];
+
+  // Chromium does not read the HTTPS_PROXY env var on its own - it needs an
+  // explicit --proxy-server flag (relevant on machines/networks that require
+  // an outbound proxy).
+  const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
+  if (proxy) {
+    args.push(`--proxy-server=${proxy}`);
+  }
+
+  const puppeteerOptions = { args };
 
   if (process.env.CHROME_PATH) {
     puppeteerOptions.executablePath = process.env.CHROME_PATH;

@@ -111,6 +111,24 @@ textarea {
   font-size: 0.9rem;
 }
 
+.add-guest-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.add-guest-form input {
+  flex: 1;
+  min-width: 140px;
+}
+
+.add-guest-form button {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
 .guests-toolbar {
   display: flex;
   gap: 8px;

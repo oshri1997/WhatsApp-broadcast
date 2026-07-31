@@ -11,13 +11,15 @@ const el = {
   fileInput: document.getElementById('file-input'),
   uploadBtn: document.getElementById('upload-btn'),
   uploadError: document.getElementById('upload-error'),
-  guestsSection: document.getElementById('guests-section'),
+  addNameInput: document.getElementById('add-name-input'),
+  addPhoneInput: document.getElementById('add-phone-input'),
+  addGuestBtn: document.getElementById('add-guest-btn'),
+  addGuestError: document.getElementById('add-guest-error'),
   guestsTableBody: document.querySelector('#guests-table tbody'),
   searchInput: document.getElementById('search-input'),
   selectAllBtn: document.getElementById('select-all-btn'),
   deselectAllBtn: document.getElementById('deselect-all-btn'),
   selectedCount: document.getElementById('selected-count'),
-  messageSection: document.getElementById('message-section'),
   messageInput: document.getElementById('message-input'),
   sendBtn: document.getElementById('send-btn'),
   sendError: document.getElementById('send-error'),
@@ -82,8 +84,6 @@ el.uploadBtn.addEventListener('click', async () => {
     }
     state.guests = data.guests;
     state.selected = new Set(data.guests.filter((g) => g.valid).map((g) => g.id));
-    el.guestsSection.hidden = false;
-    el.messageSection.hidden = false;
     renderGuests();
   } catch (err) {
     el.uploadError.textContent = 'שגיאה בהעלאת הקובץ: ' + err.message;
@@ -91,6 +91,47 @@ el.uploadBtn.addEventListener('click', async () => {
     el.uploadBtn.disabled = false;
   }
 });
+
+el.addGuestBtn.addEventListener('click', async () => {
+  el.addGuestError.textContent = '';
+  const name = el.addNameInput.value.trim();
+  const phone = el.addPhoneInput.value.trim();
+
+  if (!name || !phone) {
+    el.addGuestError.textContent = 'יש להזין שם ומספר טלפון';
+    return;
+  }
+
+  el.addGuestBtn.disabled = true;
+  try {
+    const res = await fetch('/api/guests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      el.addGuestError.textContent = data.error || 'שגיאה בהוספת מוזמן';
+      return;
+    }
+    state.guests.push(data.guest);
+    if (data.guest.valid) state.selected.add(data.guest.id);
+    el.addNameInput.value = '';
+    el.addPhoneInput.value = '';
+    el.addNameInput.focus();
+    renderGuests();
+  } catch (err) {
+    el.addGuestError.textContent = 'שגיאה בהוספת מוזמן: ' + err.message;
+  } finally {
+    el.addGuestBtn.disabled = false;
+  }
+});
+
+for (const input of [el.addNameInput, el.addPhoneInput]) {
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') el.addGuestBtn.click();
+  });
+}
 
 function renderGuests() {
   const query = el.searchInput.value.trim().toLowerCase();
@@ -218,5 +259,6 @@ function pollProgress(jobId) {
   }, 1500);
 }
 
+renderGuests();
 fetchStatus();
 setInterval(fetchStatus, 2500);

@@ -20,15 +20,21 @@
     </section>
 
     <section id="upload-section" class="card">
-      <h2>2. העלאת קובץ אקסל</h2>
-      <p class="hint">הקובץ צריך לכלול שתי עמודות: <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>.</p>
+      <h2>2. העלאת קובץ אקסל (אופציונלי)</h2>
+      <p class="hint">הקובץ צריך לכלול שתי עמודות: <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>. אפשר גם להוסיף מוזמנים ידנית בשלב הבא בלי להעלות קובץ.</p>
       <input type="file" id="file-input" accept=".xlsx,.xls,.csv" />
       <button id="upload-btn">העלאה</button>
       <div id="upload-error" class="error"></div>
     </section>
 
-    <section id="guests-section" class="card" hidden>
+    <section id="guests-section" class="card">
       <h2>3. רשימת מוזמנים</h2>
+      <div class="add-guest-form">
+        <input type="text" id="add-name-input" placeholder="שם המוזמן" />
+        <input type="text" id="add-phone-input" placeholder="מספר טלפון" />
+        <button id="add-guest-btn" class="secondary">הוספת מוזמן</button>
+      </div>
+      <div id="add-guest-error" class="error"></div>
       <div class="guests-toolbar">
         <input type="text" id="search-input" placeholder="חיפוש לפי שם או טלפון..." />
         <button id="select-all-btn" class="secondary">בחר הכל</button>
@@ -50,7 +56,7 @@
       </div>
     </section>
 
-    <section id="message-section" class="card" hidden>
+    <section id="message-section" class="card">
       <h2>4. כתיבת ההודעה</h2>
       <p class="hint">אפשר להשתמש ב-<code>{{שם}}</code> בתוך ההודעה כדי שיוחלף בשם כל מוזמן.</p>
       <textarea id="message-input" rows="8"></textarea>

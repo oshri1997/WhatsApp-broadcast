@@ -15,6 +15,7 @@ process.on('uncaughtException', (err) => {
 
 const whatsapp = require('./whatsappClient');
 const { parseGuestsFromBuffer } = require('./excelParser');
+const { normalizePhone, isPlausiblePhone } = require('./phone');
 const sendJobs = require('./sendJobs');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 let guests = [];
+let nextGuestId = 1;
 
 app.get('/api/status', (req, res) => {
   const status = whatsapp.getStatus();
@@ -49,6 +51,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
   try {
     guests = await parseGuestsFromBuffer(req.file.buffer);
+    nextGuestId = guests.length + 1;
     res.json({ guests });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -57,6 +60,28 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 app.get('/api/guests', (req, res) => {
   res.json({ guests });
+});
+
+app.post('/api/guests', (req, res) => {
+  const { name, phone } = req.body || {};
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'יש להזין שם' });
+  }
+  if (!phone || !phone.trim()) {
+    return res.status(400).json({ error: 'יש להזין מספר טלפון' });
+  }
+
+  const normalized = normalizePhone(phone);
+  const guest = {
+    id: nextGuestId++,
+    name: name.trim(),
+    phone: normalized,
+    phoneRaw: phone.trim(),
+    valid: isPlausiblePhone(normalized),
+  };
+  guests.push(guest);
+  res.json({ guest });
 });
 
 app.post('/api/send', (req, res) => {
