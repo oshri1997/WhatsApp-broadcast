@@ -240,19 +240,20 @@ h3 {
   margin-top: 20px;
 }
 
-#image-preview-container {
+#media-preview-container {
   margin-top: 10px;
 }
 
-#image-preview-container img {
-  max-width: 220px;
-  max-height: 220px;
+#media-preview-container img,
+#media-preview-container video {
+  max-width: 260px;
+  max-height: 260px;
   border-radius: 8px;
   display: block;
   box-shadow: 0 0 0 1px #ddd;
 }
 
-#image-preview-container button {
+#media-preview-container button {
   margin-top: 8px;
 }
 

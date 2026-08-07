@@ -79,7 +79,7 @@ function createAccount(dataPath) {
     return { status: state.status, qrDataUrl: state.qrDataUrl };
   }
 
-  async function sendMessage(phone, text, image) {
+  async function sendMessage(phone, text, media) {
     if (!state.client || state.status !== 'READY') {
       throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
     }
@@ -90,9 +90,9 @@ function createAccount(dataPath) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
 
-    if (image) {
-      const media = new MessageMedia(image.mimetype, image.data, image.filename);
-      await state.client.sendMessage(chatId, media, { caption: text });
+    if (media) {
+      const messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
+      await state.client.sendMessage(chatId, messageMedia, { caption: text });
     } else {
       await state.client.sendMessage(chatId, text);
     }

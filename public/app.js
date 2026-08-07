@@ -25,9 +25,9 @@ const el = {
   selectedCount: document.getElementById('selected-count'),
   messageInput: document.getElementById('message-input'),
   templateSelect: document.getElementById('template-select'),
-  imageInput: document.getElementById('image-input'),
-  imagePreviewContainer: document.getElementById('image-preview-container'),
-  imageError: document.getElementById('image-error'),
+  mediaInput: document.getElementById('media-input'),
+  mediaPreviewContainer: document.getElementById('media-preview-container'),
+  mediaError: document.getElementById('media-error'),
   sendBtn: document.getElementById('send-btn'),
   sendError: document.getElementById('send-error'),
   progressSection: document.getElementById('progress-section'),
@@ -269,49 +269,51 @@ for (const input of [el.addNameInput, el.addPhoneInput, el.addSideInput]) {
   });
 }
 
-function renderImagePreview(dataUrl) {
-  el.imagePreviewContainer.innerHTML = '';
+function renderMediaPreview(dataUrl, kind) {
+  el.mediaPreviewContainer.innerHTML = '';
   if (!dataUrl) return;
 
-  const img = document.createElement('img');
-  img.src = dataUrl;
+  const media = document.createElement(kind === 'video' ? 'video' : 'img');
+  media.src = dataUrl;
+  if (kind === 'video') media.controls = true;
+
   const removeBtn = document.createElement('button');
   removeBtn.className = 'secondary';
-  removeBtn.textContent = 'הסרת תמונה';
+  removeBtn.textContent = 'הסרה';
   removeBtn.addEventListener('click', async () => {
-    await fetch('/api/invitation-image', { method: 'DELETE' });
-    el.imageInput.value = '';
-    renderImagePreview(null);
+    await fetch('/api/invitation-media', { method: 'DELETE' });
+    el.mediaInput.value = '';
+    renderMediaPreview(null);
   });
 
-  el.imagePreviewContainer.append(img, removeBtn);
+  el.mediaPreviewContainer.append(media, removeBtn);
 }
 
-el.imageInput.addEventListener('change', async () => {
-  el.imageError.textContent = '';
-  const file = el.imageInput.files[0];
+el.mediaInput.addEventListener('change', async () => {
+  el.mediaError.textContent = '';
+  const file = el.mediaInput.files[0];
   if (!file) return;
 
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append('media', file);
 
   try {
-    const res = await fetch('/api/invitation-image', { method: 'POST', body: formData });
+    const res = await fetch('/api/invitation-media', { method: 'POST', body: formData });
     const data = await res.json();
     if (!res.ok) {
-      el.imageError.textContent = data.error || 'שגיאה בהעלאת התמונה';
+      el.mediaError.textContent = data.error || 'שגיאה בהעלאת הקובץ';
       return;
     }
-    renderImagePreview(data.dataUrl);
+    renderMediaPreview(data.dataUrl, data.kind);
   } catch (err) {
-    el.imageError.textContent = 'שגיאה בהעלאת התמונה: ' + err.message;
+    el.mediaError.textContent = 'שגיאה בהעלאת הקובץ: ' + err.message;
   }
 });
 
-async function loadExistingImage() {
-  const res = await fetch('/api/invitation-image');
+async function loadExistingMedia() {
+  const res = await fetch('/api/invitation-media');
   const data = await res.json();
-  renderImagePreview(data.dataUrl);
+  renderMediaPreview(data.dataUrl, data.kind);
 }
 
 function renderGuests() {
@@ -587,6 +589,6 @@ async function loadExistingGuests() {
 }
 
 loadExistingGuests();
-loadExistingImage();
+loadExistingMedia();
 fetchAccounts();
 setInterval(fetchAccounts, 2500);

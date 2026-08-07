@@ -72,11 +72,11 @@
 
       <textarea id="message-input" rows="8"></textarea>
 
-      <h3>תמונת ההזמנה (אופציונלי)</h3>
-      <p class="hint">אם מעלים תמונה, היא תישלח לכולם עם ההודעה כתיאור מתחתיה.</p>
-      <input type="file" id="image-input" accept="image/*" />
-      <div id="image-preview-container"></div>
-      <div id="image-error" class="error"></div>
+      <h3>תמונה או סרטון להזמנה (אופציונלי)</h3>
+      <p class="hint">אם מעלים תמונה או סרטון, הוא יישלח לכולם עם ההודעה כתיאור מתחתיו. סרטונים גדולים עלולים להיכשל בשליחה בוואטסאפ - עדיף לשמור על גודל סביר (עד כמה עשרות MB, שניות בודדות).</p>
+      <input type="file" id="media-input" accept="image/*,video/*" />
+      <div id="media-preview-container"></div>
+      <div id="media-error" class="error"></div>
 
       <button id="send-btn">שליחת הזמנות</button>
       <div id="send-error" class="error"></div>

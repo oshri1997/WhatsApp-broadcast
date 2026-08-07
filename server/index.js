@@ -20,14 +20,14 @@ const sendJobs = require('./sendJobs');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
-const uploadImage = multer({ storage: multer.memoryStorage(), limits: { fileSize: 16 * 1024 * 1024 } });
+const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize: 64 * 1024 * 1024 } });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 let guests = [];
 let nextGuestId = 1;
-let invitationImage = null; // { data (base64), mimetype, filename }
+let invitationMedia = null; // { data (base64), mimetype, filename }
 
 // Decides which WhatsApp account should send to a given guest. With a single
 // connected account, everyone routes through it regardless of the "side"
@@ -151,30 +151,39 @@ app.patch('/api/guests/:id', (req, res) => {
   res.json({ guest: withResolution(guest) });
 });
 
-app.post('/api/invitation-image', uploadImage.single('image'), (req, res) => {
+app.post('/api/invitation-media', uploadMedia.single('media'), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'לא הועלתה תמונה' });
+    return res.status(400).json({ error: 'לא הועלה קובץ' });
   }
-  if (!req.file.mimetype.startsWith('image/')) {
-    return res.status(400).json({ error: 'הקובץ שהועלה אינו תמונה' });
+  const isImage = req.file.mimetype.startsWith('image/');
+  const isVideo = req.file.mimetype.startsWith('video/');
+  if (!isImage && !isVideo) {
+    return res.status(400).json({ error: 'הקובץ שהועלה חייב להיות תמונה או סרטון' });
   }
 
-  invitationImage = {
+  invitationMedia = {
     data: req.file.buffer.toString('base64'),
     mimetype: req.file.mimetype,
     filename: req.file.originalname,
+    kind: isVideo ? 'video' : 'image',
   };
 
-  res.json({ dataUrl: `data:${invitationImage.mimetype};base64,${invitationImage.data}` });
+  res.json({
+    dataUrl: `data:${invitationMedia.mimetype};base64,${invitationMedia.data}`,
+    kind: invitationMedia.kind,
+  });
 });
 
-app.get('/api/invitation-image', (req, res) => {
-  if (!invitationImage) return res.json({ dataUrl: null });
-  res.json({ dataUrl: `data:${invitationImage.mimetype};base64,${invitationImage.data}` });
+app.get('/api/invitation-media', (req, res) => {
+  if (!invitationMedia) return res.json({ dataUrl: null, kind: null });
+  res.json({
+    dataUrl: `data:${invitationMedia.mimetype};base64,${invitationMedia.data}`,
+    kind: invitationMedia.kind,
+  });
 });
 
-app.delete('/api/invitation-image', (req, res) => {
-  invitationImage = null;
+app.delete('/api/invitation-media', (req, res) => {
+  invitationMedia = null;
   res.json({ ok: true });
 });
 
@@ -203,7 +212,7 @@ app.post('/api/send', (req, res) => {
     });
   }
 
-  const jobId = sendJobs.createJob(selected, message, invitationImage);
+  const jobId = sendJobs.createJob(selected, message, invitationMedia);
   res.json({ jobId });
 });
 
