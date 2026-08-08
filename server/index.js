@@ -126,25 +126,27 @@ app.patch('/api/guests/:id', (req, res) => {
   }
 
   const { name, phone, side, customMessage } = req.body || {};
+  const patch = {};
 
   if (name !== undefined) {
     if (!name.trim()) return res.status(400).json({ error: 'יש להזין שם' });
-    guest.name = name.trim();
+    patch.name = name.trim();
   }
   if (phone !== undefined) {
     if (!phone.trim()) return res.status(400).json({ error: 'יש להזין מספר טלפון' });
-    guest.phoneRaw = phone.trim();
-    guest.phone = normalizePhone(phone);
-    guest.valid = isPlausiblePhone(guest.phone);
+    patch.phoneRaw = phone.trim();
+    patch.phone = normalizePhone(phone);
+    patch.valid = isPlausiblePhone(patch.phone);
   }
   if (side !== undefined) {
-    guest.side = side && side.trim() ? side.trim() : '';
+    patch.side = side && side.trim() ? side.trim() : '';
   }
   if (customMessage !== undefined) {
-    guest.customMessage = customMessage && customMessage.trim() ? customMessage : null;
+    patch.customMessage = customMessage && customMessage.trim() ? customMessage : null;
   }
 
-  res.json({ guest: withResolution(guest) });
+  const updated = guestStore.update(id, patch);
+  res.json({ guest: withResolution(updated) });
 });
 
 app.post('/api/invitation-media', uploadMedia.single('media'), (req, res) => {

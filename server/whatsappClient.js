@@ -64,6 +64,7 @@ function createAccount(dataPath, onMessage) {
 
     if (onMessage) {
       client.on('message', async (message) => {
+        console.log(`WhatsApp client (${dataPath}) received a message from ${message.from}`);
         try {
           // message.from isn't always a phone number - WhatsApp increasingly
           // addresses chats by an opaque "LID" instead of <phone>@c.us, so
