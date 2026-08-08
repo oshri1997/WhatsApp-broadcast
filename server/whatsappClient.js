@@ -65,9 +65,15 @@ function createAccount(dataPath) {
 
   function init() {
     if (state.client) return state.client;
-    state.client = buildClient();
-    state.client.initialize().catch((err) => {
+    const client = (state.client = buildClient());
+    client.initialize().catch(async (err) => {
       console.error(`WhatsApp client (${dataPath}) failed to initialize:`, err.message);
+      // A failed initialize() can still leave the underlying Chromium
+      // process (and its profile lock) running, which makes every
+      // subsequent init() attempt fail with an unrelated "browser already
+      // running" error instead of retrying cleanly. Close it down so the
+      // lock is released.
+      await client.destroy().catch(() => {});
       state.status = 'DISCONNECTED';
       state.qrDataUrl = null;
       state.client = null;
