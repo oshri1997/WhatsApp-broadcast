@@ -3,8 +3,10 @@ const qrcode = require('qrcode');
 
 // Builds one independent WhatsApp Web connection. Each account gets its own
 // LocalAuth session folder (keyed by dataPath) so multiple phone numbers can
-// be logged in side by side, each with its own QR code.
-function createAccount(dataPath) {
+// be logged in side by side, each with its own QR code. `onMessage(chatId,
+// body)` is invoked for every message this account receives (not ones it
+// sends), used for the RSVP reply flow.
+function createAccount(dataPath, onMessage) {
   const state = {
     status: 'INITIALIZING', // INITIALIZING | QR | AUTHENTICATED | READY | DISCONNECTED
     qrDataUrl: null,
@@ -59,6 +61,12 @@ function createAccount(dataPath) {
       state.qrDataUrl = null;
       state.client = null;
     });
+
+    if (onMessage) {
+      client.on('message', (message) => {
+        onMessage(message.from, message.body);
+      });
+    }
 
     return client;
   }

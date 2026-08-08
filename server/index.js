@@ -14,6 +14,7 @@ process.on('uncaughtException', (err) => {
 });
 
 const accounts = require('./accounts');
+const guestStore = require('./guestStore');
 const { parseGuestsFromBuffer } = require('./excelParser');
 const { normalizePhone, isPlausiblePhone } = require('./phone');
 const sendJobs = require('./sendJobs');
@@ -25,8 +26,6 @@ const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-let guests = [];
-let nextGuestId = 1;
 let invitationMedia = null; // { data (base64), mimetype, filename }
 
 // Decides which WhatsApp account should send to a given guest. With a single
@@ -87,16 +86,15 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     return res.status(400).json({ error: 'לא הועלה קובץ' });
   }
   try {
-    guests = await parseGuestsFromBuffer(req.file.buffer);
-    nextGuestId = guests.length + 1;
-    res.json({ guests: guests.map(withResolution) });
+    guestStore.setAll(await parseGuestsFromBuffer(req.file.buffer));
+    res.json({ guests: guestStore.getAll().map(withResolution) });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
 app.get('/api/guests', (req, res) => {
-  res.json({ guests: guests.map(withResolution) });
+  res.json({ guests: guestStore.getAll().map(withResolution) });
 });
 
 app.post('/api/guests', (req, res) => {
@@ -110,21 +108,19 @@ app.post('/api/guests', (req, res) => {
   }
 
   const normalized = normalizePhone(phone);
-  const guest = {
-    id: nextGuestId++,
+  const guest = guestStore.add({
     name: name.trim(),
     phone: normalized,
     phoneRaw: phone.trim(),
     side: side && side.trim() ? side.trim() : '',
     valid: isPlausiblePhone(normalized),
-  };
-  guests.push(guest);
+  });
   res.json({ guest: withResolution(guest) });
 });
 
 app.patch('/api/guests/:id', (req, res) => {
   const id = Number(req.params.id);
-  const guest = guests.find((g) => g.id === id);
+  const guest = guestStore.findById(id);
   if (!guest) {
     return res.status(404).json({ error: 'מוזמן לא נמצא' });
   }
@@ -201,7 +197,8 @@ app.post('/api/send', (req, res) => {
   }
 
   const idSet = new Set(guestIds);
-  const selected = guests
+  const selected = guestStore
+    .getAll()
     .filter((g) => idSet.has(g.id) && g.valid)
     .map((g) => ({ ...g, accountId: resolveAccount(g)?.id || null }))
     .filter((g) => g.accountId);
