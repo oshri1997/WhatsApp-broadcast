@@ -171,11 +171,17 @@ export function createAccount(
       throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
     }
 
-    const chatId = `${phone}@c.us`;
-    const isRegistered = await state.client.isRegisteredUser(chatId);
-    if (!isRegistered) {
+    // getNumberId asks WhatsApp for the number's *current* canonical id and
+    // returns null if unregistered. WhatsApp increasingly addresses contacts
+    // by an opaque "lid" rather than <phone>@c.us (the same reason incoming
+    // messages need getContactLidAndPhone), so building the c.us address by
+    // hand and sending to that instead of the resolved id can silently target
+    // a chat that doesn't exist: no error, no chat ever opens on their phone.
+    const numberId = await state.client.getNumberId(phone);
+    if (!numberId) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
+    const chatId = numberId._serialized;
 
     if (media) {
       const messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
