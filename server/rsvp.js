@@ -29,11 +29,20 @@ function parseCount(text) {
 // `sendReply` is that account's own sendRaw(chatId, text).
 async function handleIncomingMessage(accountId, chatId, phone, text, sendReply) {
   if (!text) return;
-  const guest = guestStore.findByPhone(normalizePhone(phone));
+  const normalizedPhone = normalizePhone(phone);
+  const guest = guestStore.findByPhone(normalizedPhone);
 
   // Only engage with guests we actually sent an invitation to - otherwise
   // the connected number would auto-reply to any random incoming message.
-  if (!guest || !guest.invited) return;
+  if (!guest) {
+    console.log(`RSVP: message from ${normalizedPhone} does not match any known guest - ignoring.`);
+    return;
+  }
+  if (!guest.invited) {
+    console.log(`RSVP: message from guest "${guest.name}" (${normalizedPhone}) who was never sent an invite - ignoring.`);
+    return;
+  }
+  console.log(`RSVP: message from guest "${guest.name}": "${text}"`);
 
   const reply = (msg) =>
     sendReply(chatId, msg).catch((err) => {
