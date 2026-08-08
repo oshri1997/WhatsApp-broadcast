@@ -16,6 +16,7 @@ process.on('uncaughtException', (err) => {
 const accounts = require('./accounts');
 const guestStore = require('./guestStore');
 const { parseGuestsFromBuffer } = require('./excelParser');
+const { buildGuestExportWorkbook } = require('./guestExport');
 const { normalizePhone, isPlausiblePhone } = require('./phone');
 const sendJobs = require('./sendJobs');
 
@@ -95,6 +96,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 app.get('/api/guests', (req, res) => {
   res.json({ guests: guestStore.getAll().map(withResolution) });
+});
+
+app.get('/api/guests/export', async (req, res) => {
+  const workbook = await buildGuestExportWorkbook(guestStore.getAll().map(withResolution));
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="guests.xlsx"');
+  await workbook.xlsx.write(res);
+  res.end();
 });
 
 app.post('/api/guests', (req, res) => {

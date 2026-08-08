@@ -19,11 +19,14 @@ const el = {
   addGuestBtn: document.getElementById('add-guest-btn'),
   addGuestError: document.getElementById('add-guest-error'),
   guestsTableBody: document.querySelector('#guests-table tbody'),
-  rsvpSummary: document.getElementById('rsvp-summary'),
+  dashboardTiles: document.getElementById('dashboard-tiles'),
   searchInput: document.getElementById('search-input'),
+  rsvpFilter: document.getElementById('rsvp-filter'),
   selectAllBtn: document.getElementById('select-all-btn'),
   deselectAllBtn: document.getElementById('deselect-all-btn'),
   selectedCount: document.getElementById('selected-count'),
+  remindPendingBtn: document.getElementById('remind-pending-btn'),
+  exportBtn: document.getElementById('export-btn'),
   messageInput: document.getElementById('message-input'),
   templateSelect: document.getElementById('template-select'),
   mediaInput: document.getElementById('media-input'),
@@ -186,6 +189,8 @@ function renderAccounts() {
     option.value = account.label;
     el.accountLabelsDatalist.appendChild(option);
   }
+
+  renderDashboard();
 }
 
 el.addAccountBtn.addEventListener('click', async () => {
@@ -317,10 +322,21 @@ async function loadExistingMedia() {
   renderMediaPreview(data.dataUrl, data.kind);
 }
 
+function matchesRsvpFilter(guest, filterValue) {
+  if (!filterValue) return true;
+  if (filterValue === 'not-invited') return !guest.invited;
+  if (!guest.invited) return false;
+  if (filterValue === 'pending') return !guest.rsvpStatus;
+  return guest.rsvpStatus === filterValue;
+}
+
 function renderGuests() {
   const query = el.searchInput.value.trim().toLowerCase();
+  const rsvpFilterValue = el.rsvpFilter.value;
   const filtered = state.guests.filter(
-    (g) => g.name.toLowerCase().includes(query) || (g.phoneRaw || '').includes(query)
+    (g) =>
+      (g.name.toLowerCase().includes(query) || (g.phoneRaw || '').includes(query)) &&
+      matchesRsvpFilter(g, rsvpFilterValue)
   );
 
   const multipleAccounts = state.accounts.length > 1;
@@ -398,7 +414,7 @@ function renderGuests() {
   }
 
   updateSelectedCount();
-  renderRsvpSummary();
+  renderDashboard();
 }
 
 function rsvpBadge(guest) {
@@ -425,31 +441,59 @@ function rsvpBadge(guest) {
   return span;
 }
 
-function renderRsvpSummary() {
+function buildStatTile({ icon, label, value, subvalue, tone }) {
+  const tile = document.createElement('div');
+  tile.className = 'stat-tile' + (tone ? ' ' + tone : '');
+
+  const labelEl = document.createElement('div');
+  labelEl.className = 'stat-label';
+  labelEl.textContent = (icon ? icon + ' ' : '') + label;
+
+  const valueEl = document.createElement('div');
+  valueEl.className = 'stat-value';
+  valueEl.textContent = value;
+
+  tile.append(labelEl, valueEl);
+
+  if (subvalue) {
+    const subEl = document.createElement('div');
+    subEl.className = 'stat-subvalue';
+    subEl.textContent = subvalue;
+    tile.appendChild(subEl);
+  }
+
+  return tile;
+}
+
+function renderDashboard() {
   const invited = state.guests.filter((g) => g.invited);
   const yes = invited.filter((g) => g.rsvpStatus === 'yes');
   const no = invited.filter((g) => g.rsvpStatus === 'no');
   const maybe = invited.filter((g) => g.rsvpStatus === 'maybe');
   const pending = invited.filter((g) => !g.rsvpStatus);
-  const confirmedCount = yes.reduce((sum, g) => sum + (g.rsvpCount || 0), 0);
+  const confirmedPeople = yes.reduce((sum, g) => sum + (g.rsvpCount || 0), 0);
+  const readyAccounts = state.accounts.filter((a) => a.status === 'READY').length;
 
-  if (invited.length === 0) {
-    el.rsvpSummary.innerHTML = '';
-    return;
-  }
-
-  el.rsvpSummary.innerHTML = '';
-  const items = [
-    `✅ מגיעים: ${yes.length} מוזמנים (${confirmedCount} אנשים בסך הכל)`,
-    `❌ לא מגיעים: ${no.length}`,
-    `🤔 אולי: ${maybe.length}`,
-    `⏳ ממתינים לתשובה: ${pending.length}`,
-  ];
-  for (const text of items) {
-    const span = document.createElement('span');
-    span.textContent = text;
-    el.rsvpSummary.appendChild(span);
-  }
+  el.dashboardTiles.innerHTML = '';
+  el.dashboardTiles.append(
+    buildStatTile({ icon: '👥', label: 'סה"כ מוזמנים', value: state.guests.length }),
+    buildStatTile({
+      icon: '✅',
+      label: 'מגיעים',
+      value: yes.length,
+      subvalue: `${confirmedPeople} אנשים בסך הכל`,
+      tone: 'good',
+    }),
+    buildStatTile({ icon: '❌', label: 'לא מגיעים', value: no.length, tone: 'critical' }),
+    buildStatTile({ icon: '🤔', label: 'אולי', value: maybe.length, tone: 'warning' }),
+    buildStatTile({ icon: '⏳', label: 'ממתינים לתשובה', value: pending.length, tone: 'neutral' }),
+    buildStatTile({
+      icon: '📱',
+      label: 'חיבורי וואטסאפ',
+      value: `${readyAccounts}/${state.accounts.length}`,
+      subvalue: readyAccounts === state.accounts.length ? 'הכל מחובר' : 'יש חיבורים שלא מחוברים',
+    })
+  );
 }
 
 function buildEditorRow(guest) {
@@ -551,12 +595,21 @@ function updateSelectedCount() {
 }
 
 el.searchInput.addEventListener('input', renderGuests);
+el.rsvpFilter.addEventListener('change', renderGuests);
 
 el.selectAllBtn.addEventListener('click', () => {
+  // Selects everyone currently matching the search/RSVP filter, not the
+  // whole list - so "select all" while filtered to e.g. "ממתינים לתשובה"
+  // does what it looks like it does.
+  const query = el.searchInput.value.trim().toLowerCase();
+  const rsvpFilterValue = el.rsvpFilter.value;
   const multipleAccounts = state.accounts.length > 1;
   for (const g of state.guests) {
     const sideUnresolved = multipleAccounts && !g.resolvedAccountId;
-    if (g.valid && !sideUnresolved) state.selected.add(g.id);
+    const matchesSearch = g.name.toLowerCase().includes(query) || (g.phoneRaw || '').includes(query);
+    if (g.valid && !sideUnresolved && matchesSearch && matchesRsvpFilter(g, rsvpFilterValue)) {
+      state.selected.add(g.id);
+    }
   }
   renderGuests();
 });
@@ -564,6 +617,39 @@ el.selectAllBtn.addEventListener('click', () => {
 el.deselectAllBtn.addEventListener('click', () => {
   state.selected.clear();
   renderGuests();
+});
+
+el.exportBtn.addEventListener('click', () => {
+  window.location.href = '/api/guests/export';
+});
+
+el.remindPendingBtn.addEventListener('click', () => {
+  el.rsvpFilter.value = 'pending';
+  state.selected.clear();
+
+  const multipleAccounts = state.accounts.length > 1;
+  let count = 0;
+  for (const g of state.guests) {
+    const sideUnresolved = multipleAccounts && !g.resolvedAccountId;
+    if (g.invited && !g.rsvpStatus && g.valid && !sideUnresolved) {
+      state.selected.add(g.id);
+      count++;
+    }
+  }
+  renderGuests();
+
+  if (count === 0) {
+    alert('אין כרגע מוזמנים שממתינים לתשובה.');
+    return;
+  }
+
+  const reminderTemplate = MESSAGE_TEMPLATES.find((t) => t.label === 'תזכורת לקראת האירוע');
+  const hasContent = el.messageInput.value.trim().length > 0;
+  if (reminderTemplate && (!hasContent || confirm('לטעון את תבנית התזכורת ולהחליף את ההודעה הנוכחית?'))) {
+    el.messageInput.value = reminderTemplate.text;
+  }
+
+  document.getElementById('message-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 el.sendBtn.addEventListener('click', async () => {

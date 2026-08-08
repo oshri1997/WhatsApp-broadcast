@@ -12,6 +12,10 @@
   </header>
 
   <main>
+    <section id="dashboard-section" class="card dashboard-card">
+      <div id="dashboard-tiles" class="stat-tile-grid"></div>
+    </section>
+
     <section id="connection-section" class="card">
       <h2>1. חיבורי וואטסאפ</h2>
       <p class="hint">אפשר לחבר כמה מספרי וואטסאפ (למשל שלך ושל בן/בת הזוג). כל מוזמן ישויך לחיבור המתאים דרך עמודת "צד" באקסל, לפי השם שנותנים לחיבור כאן.</p>
@@ -42,11 +46,22 @@
       <div id="add-guest-error" class="error"></div>
       <div class="guests-toolbar">
         <input type="text" id="search-input" placeholder="חיפוש לפי שם או טלפון..." />
+        <select id="rsvp-filter">
+          <option value="">כל הסטטוסים</option>
+          <option value="yes">✅ מגיעים</option>
+          <option value="no">❌ לא מגיעים</option>
+          <option value="maybe">🤔 אולי</option>
+          <option value="pending">⏳ ממתינים לתשובה</option>
+          <option value="not-invited">טרם נשלח</option>
+        </select>
         <button id="select-all-btn" class="secondary">בחר הכל</button>
         <button id="deselect-all-btn" class="secondary">בטל בחירה</button>
         <span id="selected-count"></span>
       </div>
-      <div id="rsvp-summary" class="rsvp-summary"></div>
+      <div class="guests-toolbar">
+        <button id="remind-pending-btn" class="secondary">📨 בחירת מי שממתין לתשובה + תבנית תזכורת</button>
+        <button id="export-btn" class="secondary">⬇️ ייצוא רשימה לאקסל</button>
+      </div>
       <p class="hint">כל הזמנה שנשלחת כוללת אוטומטית שאלת אישור הגעה (כן/לא/אולי), והתשובות מתעדכנות כאן אוטומטית כשהמוזמנים משיבים בוואטסאפ.</p>
       <div class="table-wrap">
         <table id="guests-table">
