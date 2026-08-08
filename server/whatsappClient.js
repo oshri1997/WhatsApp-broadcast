@@ -64,14 +64,24 @@ function createAccount(dataPath, onMessage) {
 
     if (onMessage) {
       client.on('message', async (message) => {
+        // Group chats have multiple participants - RSVP matching only makes
+        // sense for direct 1:1 conversations with a guest.
+        if (message.from.endsWith('@g.us')) return;
+
         console.log(`WhatsApp client (${dataPath}) received a message from ${message.from}`);
         try {
           // message.from isn't always a phone number - WhatsApp increasingly
-          // addresses chats by an opaque "LID" instead of <phone>@c.us, so
-          // resolving the contact (whose `.number` is always the real phone
-          // number) is the only reliable way to identify the sender.
-          const contact = await message.getContact();
-          onMessage({ chatId: message.from, phone: contact.number, body: message.body });
+          // addresses chats by an opaque "LID" instead of <phone>@c.us.
+          // Contact.number is not reliable for resolving the real number in
+          // that case (it can just echo the LID back unresolved), so ask
+          // WhatsApp's own lid<->phone mapping directly.
+          const [{ pn }] = await client.getContactLidAndPhone([message.from]);
+          if (!pn) {
+            console.error(`Could not resolve a phone number for ${message.from} - skipping.`);
+            return;
+          }
+          const phone = pn.replace(/@.*$/, '');
+          onMessage({ chatId: message.from, phone, body: message.body });
         } catch (err) {
           console.error(`Failed to resolve sender for incoming message (${dataPath}):`, err.message);
         }
