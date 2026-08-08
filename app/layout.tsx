@@ -24,7 +24,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning className={heebo.variable}>
-      <body className="aurora min-h-dvh antialiased">
+      {/*
+        Antivirus and privacy extensions (Bitdefender's `bis_register`, among
+        others) stamp attributes onto <body> before React hydrates, which reads
+        as a server/client mismatch. Nothing we render here is non-deterministic.
+      */}
+      <body className="aurora min-h-dvh antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>
