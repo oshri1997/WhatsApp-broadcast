@@ -21,6 +21,7 @@ export interface WhatsAppAccount {
   sendRaw(chatId: string, text: string): Promise<void>;
   logout(): Promise<void>;
   shutdown(): Promise<void>;
+  diagnose(phone: string): Promise<unknown>;
 }
 
 // Builds one independent WhatsApp Web connection. Each account gets its own
@@ -166,20 +167,84 @@ export function createAccount(
     return { status: state.status, qrDataUrl: state.qrDataUrl, phone: state.phone };
   }
 
+  /**
+   * Makes sure WhatsApp Web has a real Chat object for this number before we
+   * try to send.
+   *
+   * client.sendMessage() bails out with `undefined` when its internal
+   * `getChat()` can't produce a chat, and that lookup only ever tries the
+   * exact wid string we hand it. For a contact WhatsApp has migrated to
+   * lid-based addressing, `<phone>@c.us` doesn't resolve and neither does a
+   * bare lid on its own - so the send silently does nothing and no chat is
+   * ever created on the sender's phone.
+   *
+   * Doing the resolution in-page lets us ask WhatsApp for the contact's
+   * current lid/phone pair and try each candidate wid against its own chat
+   * store, returning the first that actually yields a Chat. Returns the wid
+   * string to send to, or null if the number genuinely isn't reachable.
+   */
+  async function resolveChatId(phone: string): Promise<string | null> {
+    const page = (state.client as unknown as { pupPage: import('puppeteer').Page }).pupPage;
+
+    return page.evaluate(async (phoneNumber: string) => {
+      type Wid = { server: string; user: string; _serialized: string };
+      const w = window as unknown as {
+        require: (m: string) => Record<string, (...args: unknown[]) => unknown>;
+        WWebJS: Record<string, (...args: unknown[]) => unknown>;
+      };
+
+      const candidates: string[] = [];
+      const push = (wid: Wid | null | undefined) => {
+        const id = wid?._serialized;
+        if (id && !candidates.includes(id)) candidates.push(id);
+      };
+
+      const base = `${phoneNumber}@c.us`;
+
+      // Ask WhatsApp whether the number exists at all, and for the wid it
+      // considers canonical - that is what a lid-migrated contact needs.
+      try {
+        const result = (await w
+          .require('WAWebQueryExistsJob')
+          .queryWidExists(w.require('WAWebWidFactory').createWid(base))) as { wid?: Wid } | null;
+        if (!result?.wid) return null; // not on WhatsApp
+        push(result.wid);
+      } catch {
+        // Fall through to the plain address; the query is an optimization.
+      }
+
+      try {
+        const pair = (await w.WWebJS.enforceLidAndPnRetrieval(base)) as {
+          lid?: Wid;
+          phone?: Wid;
+        };
+        push(pair?.phone);
+        push(pair?.lid);
+      } catch {
+        /* older/newer library shapes - the candidates below still apply */
+      }
+
+      push(w.require('WAWebWidFactory').createWid(base) as Wid);
+
+      for (const candidate of candidates) {
+        try {
+          const chat = await w.WWebJS.getChat(candidate, { getAsModel: false });
+          if (chat) return candidate;
+        } catch {
+          /* try the next candidate */
+        }
+      }
+      return null;
+    }, phone);
+  }
+
   async function sendMessage(phone: string, text: string, media?: OutgoingMedia | null) {
     if (!state.client || state.status !== 'READY') {
       throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
     }
 
-    // Sending to a contact's resolved @lid address (via getNumberId) turned
-    // out to silently no-op in this library version - internal chat creation
-    // for a lid never completes, sendMessage() resolves with `undefined`, and
-    // nothing is delivered. Confirmed by testing: it broke a recipient who
-    // worked fine on plain <phone>@c.us. Back to the simple, proven address;
-    // isRegisteredUser still catches genuinely unregistered numbers.
-    const chatId = `${phone}@c.us`;
-    const isRegistered = await state.client.isRegisteredUser(chatId);
-    if (!isRegistered) {
+    const chatId = await resolveChatId(phone);
+    if (!chatId) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
 
@@ -191,11 +256,65 @@ export function createAccount(
       sent = await state.client.sendMessage(chatId, text);
     }
     if (!sent) {
-      // Seen in practice: the call can resolve without throwing yet deliver
-      // nothing (e.g. a contact WhatsApp only reaches via lid internally).
-      // Surface that as a real failure instead of reporting success.
+      // sendMessage() resolves with undefined rather than throwing when the
+      // send doesn't go through. Never report that as success.
       throw new Error('השליחה לא הושלמה בוואטסאפ - ייתכן שהמספר לא ניתן לשליחה מהחשבון הזה כרגע');
     }
+  }
+
+  /**
+   * Reports what WhatsApp Web knows about a number: whether it exists, its
+   * lid/phone pair, and which candidate wids actually resolve to a chat.
+   * Used by /api/debug/number to diagnose "reports sent but never arrives".
+   */
+  async function diagnose(phone: string): Promise<unknown> {
+    if (!state.client || state.status !== 'READY') {
+      throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
+    }
+    const page = (state.client as unknown as { pupPage: import('puppeteer').Page }).pupPage;
+
+    return page.evaluate(async (phoneNumber: string) => {
+      type Wid = { server: string; user: string; _serialized: string };
+      const w = window as unknown as {
+        require: (m: string) => Record<string, (...args: unknown[]) => unknown>;
+        WWebJS: Record<string, (...args: unknown[]) => unknown>;
+      };
+      const base = `${phoneNumber}@c.us`;
+      const report: Record<string, unknown> = { input: base };
+
+      try {
+        const result = (await w
+          .require('WAWebQueryExistsJob')
+          .queryWidExists(w.require('WAWebWidFactory').createWid(base))) as { wid?: Wid } | null;
+        report.queryWidExists = result?.wid?._serialized ?? null;
+      } catch (err) {
+        report.queryWidExists = `ERROR: ${(err as Error).message}`;
+      }
+
+      try {
+        const pair = (await w.WWebJS.enforceLidAndPnRetrieval(base)) as {
+          lid?: Wid;
+          phone?: Wid;
+        };
+        report.lid = pair?.lid?._serialized ?? null;
+        report.phone = pair?.phone?._serialized ?? null;
+      } catch (err) {
+        report.lidLookup = `ERROR: ${(err as Error).message}`;
+      }
+
+      const tried: Record<string, string> = {};
+      for (const candidate of [report.queryWidExists, report.phone, report.lid, base]) {
+        if (typeof candidate !== 'string' || tried[candidate]) continue;
+        try {
+          const chat = await w.WWebJS.getChat(candidate, { getAsModel: false });
+          tried[candidate] = chat ? 'CHAT OK' : 'no chat';
+        } catch (err) {
+          tried[candidate] = `ERROR: ${(err as Error).message}`;
+        }
+      }
+      report.chatResolution = tried;
+      return report;
+    }, phone);
   }
 
   // Replies directly to an existing chat by its own chat ID, unlike
@@ -232,5 +351,5 @@ export function createAccount(
     }
   }
 
-  return { init, getStatus, sendMessage, sendRaw, logout, shutdown };
+  return { init, getStatus, sendMessage, sendRaw, logout, shutdown, diagnose };
 }

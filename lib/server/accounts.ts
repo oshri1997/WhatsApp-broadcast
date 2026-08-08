@@ -173,6 +173,15 @@ export function first(): Account | null {
   return state.accounts.values().next().value ?? null;
 }
 
+/** Diagnostics for a single number on the first connected account. */
+export async function diagnoseNumber(phone: string): Promise<unknown> {
+  const account = Array.from(state.accounts.values()).find(
+    (a) => a.wa.getStatus().status === 'READY'
+  );
+  if (!account) throw new Error('אין חשבון וואטסאפ מחובר');
+  return account.wa.diagnose(phone);
+}
+
 export async function sendMessage(
   id: string,
   phone: string,
