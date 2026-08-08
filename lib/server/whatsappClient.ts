@@ -181,7 +181,14 @@ export function createAccount(
     if (!numberId) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
-    const chatId = numberId._serialized;
+    // _serialized is a getter on WhatsApp's internal wid objects computed
+    // in-browser; whatsapp-web.js's own lid-resolution helper explicitly
+    // reads it *inside* the puppeteer evaluate() call for exactly this reason
+    // - getNumberId doesn't, so it can come back empty once the raw wid
+    // crosses back out to Node. `user`/`server` are plain string fields set
+    // directly on the object, so they survive that trip; reconstruct from
+    // them rather than trust a getter that might not have.
+    const chatId = numberId._serialized || `${numberId.user}@${numberId.server}`;
 
     if (media) {
       const messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
