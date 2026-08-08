@@ -1,12 +1,9 @@
 const guestStore = require('./guestStore');
+const { normalizePhone } = require('./phone');
 
 const YES_RE = /^(כן|כן בטח|כן ברור|מגיע|מגיעה|מגיעים|נגיע|נגיעה|בטח|ברור|כמובן|בכיף|יאלה כן)/;
 const NO_RE = /^(לא|לא נגיע|לא נגיעה|לא מגיע|לא מגיעה|לא נוכל|לצערי לא|לצערנו לא)/;
 const MAYBE_RE = /^(אולי|לא בטוח|לא בטוחה|לא יודע|לא יודעת|עוד לא יודע|עוד לא יודעת|נראה|תלוי)/;
-
-function normalizePhoneFromChatId(chatId) {
-  return String(chatId).replace(/@c\.us$/, '').replace(/\D/g, '');
-}
 
 function parseYesNoMaybe(text) {
   const t = text.trim();
@@ -24,18 +21,24 @@ function parseCount(text) {
 }
 
 // Called whenever any connected WhatsApp account receives a message.
-// `sendReply` is that account's own sendMessage(phone, text) - replies must
-// go out from the same number the guest is chatting with.
-async function handleIncomingMessage(accountId, chatId, text, sendReply) {
+// `phone` is the sender's resolved phone number (used to match a guest);
+// `chatId` is the original chat's own address, used for the reply itself -
+// WhatsApp increasingly addresses chats by an opaque LID rather than the
+// phone number, so a reply must go back to `chatId`, not a freshly built
+// <phone>@c.us address, or it can silently fail to reach the right chat.
+// `sendReply` is that account's own sendRaw(chatId, text).
+async function handleIncomingMessage(accountId, chatId, phone, text, sendReply) {
   if (!text) return;
-  const phone = normalizePhoneFromChatId(chatId);
-  const guest = guestStore.findByPhone(phone);
+  const guest = guestStore.findByPhone(normalizePhone(phone));
 
   // Only engage with guests we actually sent an invitation to - otherwise
   // the connected number would auto-reply to any random incoming message.
   if (!guest || !guest.invited) return;
 
-  const reply = (msg) => sendReply(phone, msg).catch(() => {});
+  const reply = (msg) =>
+    sendReply(chatId, msg).catch((err) => {
+      console.error(`Failed to send RSVP reply to guest ${guest.id}:`, err.message);
+    });
 
   if (guest.rsvpAwaitingCount) {
     const count = parseCount(text);
