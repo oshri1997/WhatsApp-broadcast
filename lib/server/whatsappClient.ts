@@ -302,12 +302,36 @@ export function createAccount(
         report.lidLookup = `ERROR: ${(err as Error).message}`;
       }
 
-      const tried: Record<string, string> = {};
+      // Which "me" identities this account actually has. WWebJS.sendMessage
+      // picks `from = chat.id.isLid() ? lidUser : meUser` - so a chat that is
+      // lid-addressed while the account has no lid user yields a message key
+      // with an empty sender, and the send goes nowhere without throwing.
+      try {
+        const me = w.require('WAWebUserPrefsMeUser') as unknown as {
+          getMaybeMeLidUser(): Wid | null;
+          getMaybeMePnUser(): Wid | null;
+        };
+        report.meLidUser = me.getMaybeMeLidUser()?._serialized ?? null;
+        report.mePnUser = me.getMaybeMePnUser()?._serialized ?? null;
+      } catch (err) {
+        report.meUserLookup = `ERROR: ${(err as Error).message}`;
+      }
+
+      const tried: Record<string, unknown> = {};
       for (const candidate of [report.queryWidExists, report.phone, report.lid, base]) {
         if (typeof candidate !== 'string' || tried[candidate]) continue;
         try {
-          const chat = await w.WWebJS.getChat(candidate, { getAsModel: false });
-          tried[candidate] = chat ? 'CHAT OK' : 'no chat';
+          const chat = (await w.WWebJS.getChat(candidate, { getAsModel: false })) as {
+            id?: Wid & { isLid?: () => boolean };
+          } | null;
+          tried[candidate] = chat
+            ? {
+                // The chat we get back can be addressed differently from what
+                // we asked for - that difference is the whole problem.
+                actualChatId: chat.id?._serialized ?? null,
+                isLid: typeof chat.id?.isLid === 'function' ? chat.id.isLid() : null,
+              }
+            : 'no chat';
         } catch (err) {
           tried[candidate] = `ERROR: ${(err as Error).message}`;
         }
