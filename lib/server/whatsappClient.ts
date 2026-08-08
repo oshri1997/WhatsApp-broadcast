@@ -171,30 +171,30 @@ export function createAccount(
       throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
     }
 
-    // getNumberId asks WhatsApp for the number's *current* canonical id and
-    // returns null if unregistered. WhatsApp increasingly addresses contacts
-    // by an opaque "lid" rather than <phone>@c.us (the same reason incoming
-    // messages need getContactLidAndPhone), so building the c.us address by
-    // hand and sending to that instead of the resolved id can silently target
-    // a chat that doesn't exist: no error, no chat ever opens on their phone.
-    const numberId = await state.client.getNumberId(phone);
-    if (!numberId) {
+    // Sending to a contact's resolved @lid address (via getNumberId) turned
+    // out to silently no-op in this library version - internal chat creation
+    // for a lid never completes, sendMessage() resolves with `undefined`, and
+    // nothing is delivered. Confirmed by testing: it broke a recipient who
+    // worked fine on plain <phone>@c.us. Back to the simple, proven address;
+    // isRegisteredUser still catches genuinely unregistered numbers.
+    const chatId = `${phone}@c.us`;
+    const isRegistered = await state.client.isRegisteredUser(chatId);
+    if (!isRegistered) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
-    // _serialized is a getter on WhatsApp's internal wid objects computed
-    // in-browser; whatsapp-web.js's own lid-resolution helper explicitly
-    // reads it *inside* the puppeteer evaluate() call for exactly this reason
-    // - getNumberId doesn't, so it can come back empty once the raw wid
-    // crosses back out to Node. `user`/`server` are plain string fields set
-    // directly on the object, so they survive that trip; reconstruct from
-    // them rather than trust a getter that might not have.
-    const chatId = numberId._serialized || `${numberId.user}@${numberId.server}`;
 
+    let sent;
     if (media) {
       const messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
-      await state.client.sendMessage(chatId, messageMedia, { caption: text });
+      sent = await state.client.sendMessage(chatId, messageMedia, { caption: text });
     } else {
-      await state.client.sendMessage(chatId, text);
+      sent = await state.client.sendMessage(chatId, text);
+    }
+    if (!sent) {
+      // Seen in practice: the call can resolve without throwing yet deliver
+      // nothing (e.g. a contact WhatsApp only reaches via lid internally).
+      // Surface that as a real failure instead of reporting success.
+      throw new Error('השליחה לא הושלמה בוואטסאפ - ייתכן שהמספר לא ניתן לשליחה מהחשבון הזה כרגע');
     }
   }
 
