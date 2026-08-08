@@ -1,3 +1,8 @@
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -57,10 +62,15 @@ button {
   font-size: 0.95rem;
   cursor: pointer;
   margin-top: 8px;
+  transition: background 150ms ease, transform 120ms var(--ease-out);
 }
 
 button:hover {
   background: #6a58c4;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 button:disabled {
@@ -86,6 +96,7 @@ select {
   font-family: inherit;
   margin-bottom: 10px;
   background: white;
+  transition: border-color 150ms ease;
 }
 
 input[type="text"],
@@ -97,6 +108,14 @@ textarea {
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
+  transition: border-color 150ms ease;
+}
+
+select:focus,
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: #7e6bd6;
 }
 
 textarea {
@@ -166,6 +185,13 @@ textarea {
   color: #c0392b;
   margin-top: 8px;
   font-size: 0.9rem;
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+
+.error:empty {
+  opacity: 0;
+  margin-top: 0;
 }
 
 .add-guest-form {
@@ -228,6 +254,14 @@ th {
   background: #f7f4fc;
   position: sticky;
   top: 0;
+}
+
+tbody tr {
+  transition: background 120ms ease;
+}
+
+tbody tr:hover {
+  background: #faf8ff;
 }
 
 tr.invalid td {
@@ -320,7 +354,7 @@ tr.editing-row td {
   background: #7e6bd6;
   height: 100%;
   width: 0%;
-  transition: width 0.3s ease;
+  transition: width 250ms var(--ease-out);
 }
 
 #progress-text {
