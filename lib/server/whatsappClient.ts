@@ -22,6 +22,7 @@ export interface WhatsAppAccount {
   logout(): Promise<void>;
   shutdown(): Promise<void>;
   diagnose(phone: string): Promise<unknown>;
+  testSend(phone: string, text: string): Promise<unknown>;
 }
 
 // Builds one independent WhatsApp Web connection. Each account gets its own
@@ -341,6 +342,75 @@ export function createAccount(
     }, phone);
   }
 
+  /**
+   * Sends one real message and reports what actually landed in WhatsApp's own
+   * message store afterwards.
+   *
+   * client.sendMessage() returns `Msg.get(newMsgKey)` - a local lookup by the
+   * key it minted before sending - so `undefined` is ambiguous: it means
+   * either "the send never happened" or "it happened but got stored under a
+   * different key". Reading the chat's messages back distinguishes the two,
+   * and the ack tells us whether the server accepted it (0 = pending/not sent,
+   * 1 = reached server, 2 = delivered to device).
+   */
+  async function testSend(phone: string, text: string): Promise<unknown> {
+    if (!state.client || state.status !== 'READY') {
+      throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
+    }
+
+    const chatId = await resolveChatId(phone);
+    if (!chatId) throw new Error('המספר אינו רשום בוואטסאפ');
+
+    const returned = await state.client.sendMessage(chatId, text);
+    const page = (state.client as unknown as { pupPage: import('puppeteer').Page }).pupPage;
+
+    // Give WhatsApp a moment to register the outgoing message and its ack.
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    const stored = await page.evaluate(
+      async (id: string, body: string) => {
+        const w = window as unknown as {
+          require: (m: string) => Record<string, (...args: unknown[]) => unknown>;
+          WWebJS: Record<string, (...args: unknown[]) => unknown>;
+        };
+        const chat = (await w.WWebJS.getChat(id, { getAsModel: false })) as {
+          msgs?: { models?: unknown[] };
+        } | null;
+        if (!chat) return { chat: null };
+
+        const models = (chat.msgs?.models ?? []) as {
+          id?: { _serialized?: string };
+          body?: string;
+          ack?: number;
+          from?: { _serialized?: string };
+          to?: { _serialized?: string };
+        }[];
+
+        return {
+          chat: id,
+          totalMessages: models.length,
+          matching: models
+            .filter((m) => m.body === body)
+            .map((m) => ({
+              id: m.id?._serialized ?? null,
+              ack: m.ack ?? null,
+              from: m.from?._serialized ?? null,
+              to: m.to?._serialized ?? null,
+            })),
+          lastThree: models.slice(-3).map((m) => ({
+            id: m.id?._serialized ?? null,
+            body: (m.body ?? '').slice(0, 40),
+            ack: m.ack ?? null,
+          })),
+        };
+      },
+      chatId,
+      text
+    );
+
+    return { chatId, sendMessageReturned: returned ? 'Message object' : String(returned), stored };
+  }
+
   // Replies directly to an existing chat by its own chat ID, unlike
   // sendMessage which builds a fresh <phone>@c.us address - needed for RSVP
   // replies since the original chat may be addressed by a LID rather than the
@@ -375,5 +445,5 @@ export function createAccount(
     }
   }
 
-  return { init, getStatus, sendMessage, sendRaw, logout, shutdown, diagnose };
+  return { init, getStatus, sendMessage, sendRaw, logout, shutdown, diagnose, testSend };
 }

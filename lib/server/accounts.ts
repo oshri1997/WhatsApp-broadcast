@@ -173,13 +173,22 @@ export function first(): Account | null {
   return state.accounts.values().next().value ?? null;
 }
 
-/** Diagnostics for a single number on the first connected account. */
-export async function diagnoseNumber(phone: string): Promise<unknown> {
+function firstReady(): Account {
   const account = Array.from(state.accounts.values()).find(
     (a) => a.wa.getStatus().status === 'READY'
   );
   if (!account) throw new Error('אין חשבון וואטסאפ מחובר');
-  return account.wa.diagnose(phone);
+  return account;
+}
+
+/** Diagnostics for a single number on the first connected account. */
+export async function diagnoseNumber(phone: string): Promise<unknown> {
+  return firstReady().wa.diagnose(phone);
+}
+
+/** Sends one real message and reports what WhatsApp actually stored. */
+export async function testSendToNumber(phone: string, text: string): Promise<unknown> {
+  return firstReady().wa.testSend(phone, text);
 }
 
 export async function sendMessage(
