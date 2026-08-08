@@ -56,3 +56,15 @@ export interface InvitationMediaView {
 }
 
 export type RsvpFilter = '' | RsvpStatus | 'pending' | 'not-invited';
+
+export interface SeatingTable {
+  id: number;
+  name: string;
+  capacity: number;
+}
+
+export interface SeatingState {
+  tables: SeatingTable[];
+  /** guestId -> tableId */
+  assignments: Record<number, number>;
+}

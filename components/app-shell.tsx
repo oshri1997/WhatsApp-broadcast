@@ -7,14 +7,16 @@ import { StatTiles } from '@/components/stat-tiles';
 import { ConnectionsPanel } from '@/components/connections-panel';
 import { GuestsPanel } from '@/components/guests-panel';
 import { ComposePanel } from '@/components/compose-panel';
+import { SeatingPanel } from '@/components/seating-panel';
 import { SendProgress } from '@/components/send-progress';
 import { ThemeToggle } from '@/components/theme-toggle';
 
-type TabValue = 'guests' | 'connections' | 'compose';
+type TabValue = 'guests' | 'connections' | 'compose' | 'seating';
 
 const TABS: { value: TabValue; label: string }[] = [
   { value: 'guests', label: 'מוזמנים' },
   { value: 'compose', label: 'הודעה ושליחה' },
+  { value: 'seating', label: 'סידור הושבה' },
   { value: 'connections', label: 'חיבורי וואטסאפ' },
 ];
 
@@ -68,8 +70,10 @@ export function AppShell() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
       <header className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-b border-line/70 bg-bg/75 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
-        <h1 className="flex items-center gap-2 text-lg font-semibold sm:text-xl">
-          <span aria-hidden>💌</span>
+        <h1 className="flex items-center gap-2 text-lg font-bold sm:text-xl">
+          <span aria-hidden className="grid size-8 place-items-center rounded-xl bg-linear-to-br from-brand to-[oklch(0.6_0.17_350)] text-base shadow-sm">
+            💌
+          </span>
           הזמנות חתונה בוואטסאפ
         </h1>
         <div className="ms-auto flex items-center gap-2">
@@ -85,7 +89,7 @@ export function AppShell() {
         onValueChange={(value) => setTab(value as TabValue)}
         className="flex flex-col gap-5"
       >
-        <Tabs.List className="relative flex w-fit gap-1 rounded-full border border-line bg-surface p-1">
+        <Tabs.List className="relative flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-line bg-surface/80 p-1 backdrop-blur-md">
           {TABS.map((item) => (
             <Tabs.Tab
               key={item.value}
@@ -107,6 +111,9 @@ export function AppShell() {
         </Tabs.Panel>
         <Tabs.Panel value="compose" className="outline-none">
           <ComposePanel />
+        </Tabs.Panel>
+        <Tabs.Panel value="seating" className="outline-none">
+          <SeatingPanel />
         </Tabs.Panel>
         <Tabs.Panel value="connections" className="outline-none">
           <ConnectionsPanel />

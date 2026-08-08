@@ -18,7 +18,8 @@ const button = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-brand text-on-brand hover:not-disabled:bg-brand-hover shadow-sm',
+        primary:
+          'bg-linear-to-b from-brand to-brand-hover text-on-brand shadow-sm hover:not-disabled:brightness-110 dark:hover:not-disabled:brightness-105',
         secondary:
           'bg-surface-2 text-ink border border-line hover:not-disabled:bg-surface-hover hover:not-disabled:border-brand/30',
         ghost: 'text-muted hover:not-disabled:bg-surface-hover hover:not-disabled:text-ink',

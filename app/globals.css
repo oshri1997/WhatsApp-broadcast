@@ -147,17 +147,28 @@
 }
 
 @layer components {
-  /* The soft lavender wash behind the whole app. */
+  /* The soft aurora wash behind the whole app: a lavender core with a warm
+     rose edge, so the backdrop reads as intentional rather than flat. */
   .aurora::before {
     content: '';
     position: fixed;
     inset-block-start: -22rem;
     inset-inline: -10rem;
-    height: 44rem;
+    height: 48rem;
     z-index: -1;
     pointer-events: none;
-    background: radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 70%);
-    opacity: 0.75;
+    background:
+      radial-gradient(45% 50% at 30% 45%, color-mix(in oklab, var(--bg-glow) 70%, transparent) 0%, transparent 70%),
+      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, oklch(0.88 0.06 350) 45%, transparent) 0%, transparent 70%),
+      radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 72%);
+    opacity: 0.8;
+  }
+
+  .dark .aurora::before {
+    background:
+      radial-gradient(45% 50% at 30% 45%, color-mix(in oklab, var(--bg-glow) 80%, transparent) 0%, transparent 70%),
+      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, oklch(0.32 0.07 350) 55%, transparent) 0%, transparent 70%),
+      radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 72%);
   }
 
   /*
@@ -205,9 +216,19 @@
     background-color: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
+    /* Layered shadow + a faint top highlight - reads as depth without weight. */
     box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, white 55%, transparent),
       0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
-      0 4px 16px -8px hsl(var(--shadow-color) / 0.14);
+      0 4px 16px -8px hsl(var(--shadow-color) / 0.16),
+      0 12px 32px -16px hsl(var(--shadow-color) / 0.12);
+  }
+
+  .dark .card {
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, white 6%, transparent),
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.4),
+      0 4px 16px -8px hsl(var(--shadow-color) / 0.5);
   }
 
   /* Shared skin for every text-ish control so they line up pixel for pixel. */
