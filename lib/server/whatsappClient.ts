@@ -20,6 +20,7 @@ export interface WhatsAppAccount {
   sendMessage(phone: string, text: string, media?: OutgoingMedia | null): Promise<void>;
   sendRaw(chatId: string, text: string): Promise<void>;
   logout(): Promise<void>;
+  shutdown(): Promise<void>;
 }
 
 // Builds one independent WhatsApp Web connection. Each account gets its own
@@ -205,5 +206,18 @@ export function createAccount(
     }
   }
 
-  return { init, getStatus, sendMessage, sendRaw, logout };
+  // Closes the puppeteer browser without touching the linked WhatsApp session -
+  // unlike logout(), which deliberately unlinks the device and deletes the
+  // session files. Killing the process without this leaves Chromium's profile
+  // (its IndexedDB, specifically - where the login keys live) mid-write, which
+  // can corrupt it and force a fresh QR scan on the next launch even though
+  // the session folder is still sitting on disk.
+  async function shutdown() {
+    if (state.client) {
+      await state.client.destroy().catch(() => {});
+      state.client = null;
+    }
+  }
+
+  return { init, getStatus, sendMessage, sendRaw, logout, shutdown };
 }

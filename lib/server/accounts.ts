@@ -122,6 +122,11 @@ export function retryDisconnected(): void {
   }
 }
 
+/** Closes every account's browser cleanly. Called on process shutdown - see instrumentation.ts. */
+export async function shutdownAll(): Promise<void> {
+  await Promise.all(Array.from(state.accounts.values()).map((a) => a.wa.shutdown()));
+}
+
 // Case/whitespace-insensitive match between a guest's "side" value and a
 // configured account's label.
 export function findByLabel(label: string | null | undefined): Account | null {
