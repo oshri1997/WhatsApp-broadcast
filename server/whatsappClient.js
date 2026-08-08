@@ -63,8 +63,17 @@ function createAccount(dataPath, onMessage) {
     });
 
     if (onMessage) {
-      client.on('message', (message) => {
-        onMessage(message.from, message.body);
+      client.on('message', async (message) => {
+        try {
+          // message.from isn't always a phone number - WhatsApp increasingly
+          // addresses chats by an opaque "LID" instead of <phone>@c.us, so
+          // resolving the contact (whose `.number` is always the real phone
+          // number) is the only reliable way to identify the sender.
+          const contact = await message.getContact();
+          onMessage({ chatId: message.from, phone: contact.number, body: message.body });
+        } catch (err) {
+          console.error(`Failed to resolve sender for incoming message (${dataPath}):`, err.message);
+        }
       });
     }
 
@@ -112,6 +121,17 @@ function createAccount(dataPath, onMessage) {
     }
   }
 
+  // Replies directly to an existing chat by its own chat ID, unlike
+  // sendMessage which builds a fresh <phone>@c.us address - needed for RSVP
+  // replies since the original chat may be addressed by a LID rather than
+  // the phone number.
+  async function sendRaw(chatId, text) {
+    if (!state.client || state.status !== 'READY') {
+      throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
+    }
+    await state.client.sendMessage(chatId, text);
+  }
+
   async function logout() {
     if (state.client) {
       await state.client.logout();
@@ -121,7 +141,7 @@ function createAccount(dataPath, onMessage) {
     }
   }
 
-  return { init, getStatus, sendMessage, logout };
+  return { init, getStatus, sendMessage, sendRaw, logout };
 }
 
 module.exports = { createAccount };

@@ -6,8 +6,8 @@ let nextAccountId = 1;
 
 function create(label) {
   const id = 'acc' + nextAccountId++;
-  const wa = createAccount(`.wwebjs_auth_${id}`, (chatId, text) => {
-    rsvp.handleIncomingMessage(id, chatId, text, wa.sendMessage).catch((err) => {
+  const wa = createAccount(`.wwebjs_auth_${id}`, ({ chatId, phone, body }) => {
+    rsvp.handleIncomingMessage(id, chatId, phone, body, wa.sendRaw).catch((err) => {
       console.error(`RSVP handling failed for account ${id}:`, err.message);
     });
   });
