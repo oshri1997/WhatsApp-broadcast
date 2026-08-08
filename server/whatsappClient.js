@@ -65,9 +65,15 @@ function createAccount(dataPath) {
 
   function init() {
     if (state.client) return state.client;
-    state.client = buildClient();
-    state.client.initialize().catch((err) => {
+    const client = (state.client = buildClient());
+    client.initialize().catch(async (err) => {
       console.error(`WhatsApp client (${dataPath}) failed to initialize:`, err.message);
+      // A failed initialize() can still leave the underlying Chromium
+      // process (and its profile lock) running, which makes every
+      // subsequent init() attempt fail with an unrelated "browser already
+      // running" error instead of retrying cleanly. Close it down so the
+      // lock is released.
+      await client.destroy().catch(() => {});
       state.status = 'DISCONNECTED';
       state.qrDataUrl = null;
       state.client = null;
@@ -79,7 +85,7 @@ function createAccount(dataPath) {
     return { status: state.status, qrDataUrl: state.qrDataUrl };
   }
 
-  async function sendMessage(phone, text, image) {
+  async function sendMessage(phone, text, media) {
     if (!state.client || state.status !== 'READY') {
       throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
     }
@@ -90,9 +96,9 @@ function createAccount(dataPath) {
       throw new Error('המספר אינו רשום בוואטסאפ');
     }
 
-    if (image) {
-      const media = new MessageMedia(image.mimetype, image.data, image.filename);
-      await state.client.sendMessage(chatId, media, { caption: text });
+    if (media) {
+      const messageMedia = new MessageMedia(media.mimetype, media.data, media.filename);
+      await state.client.sendMessage(chatId, messageMedia, { caption: text });
     } else {
       await state.client.sendMessage(chatId, text);
     }

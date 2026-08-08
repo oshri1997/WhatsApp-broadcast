@@ -21,7 +21,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createJob(guests, messageTemplate, image) {
+function createJob(guests, messageTemplate, media) {
   const id = String(nextJobId++);
   const job = {
     id,
@@ -33,7 +33,7 @@ function createJob(guests, messageTemplate, image) {
   };
   jobs.set(id, job);
 
-  runJob(job, guests, messageTemplate, image).catch((err) => {
+  runJob(job, guests, messageTemplate, media).catch((err) => {
     job.status = 'done';
     job.error = err.message;
   });
@@ -41,14 +41,14 @@ function createJob(guests, messageTemplate, image) {
   return id;
 }
 
-async function runJob(job, guests, messageTemplate, image) {
+async function runJob(job, guests, messageTemplate, media) {
   for (let i = 0; i < guests.length; i++) {
     const guest = guests[i];
     job.current = guest.name;
 
     try {
       const text = renderMessage(messageTemplate, guest);
-      await accounts.sendMessage(guest.accountId, guest.phone, text, image);
+      await accounts.sendMessage(guest.accountId, guest.phone, text, media);
       job.sent++;
     } catch (err) {
       job.failed.push({ name: guest.name, phone: guest.phoneRaw || guest.phone, reason: err.message });

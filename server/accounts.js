@@ -67,10 +67,10 @@ function get(id) {
   return accounts.get(id) || null;
 }
 
-async function sendMessage(id, phone, text, image) {
+async function sendMessage(id, phone, text, media) {
   const account = accounts.get(id);
   if (!account) throw new Error('חשבון השליחה לא נמצא');
-  await account.wa.sendMessage(phone, text, image);
+  await account.wa.sendMessage(phone, text, media);
 }
 
 module.exports = { create, ensureDefault, list, rename, remove, logout, retryDisconnected, findByLabel, get, sendMessage };
