@@ -1,0 +1,257 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  One palette, two themes. Every colour the UI uses is a token here — nothing
+  in a component should reach for a raw hex, or dark mode drifts out of sync.
+*/
+:root {
+  --bg: oklch(0.977 0.008 305);
+  --bg-glow: oklch(0.93 0.045 300);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.985 0.006 305);
+  --surface-hover: oklch(0.968 0.012 305);
+  --ink: oklch(0.235 0.03 300);
+  --muted: oklch(0.53 0.028 300);
+  --line: oklch(0.916 0.014 300);
+  --brand: oklch(0.53 0.19 295);
+  --brand-hover: oklch(0.47 0.19 295);
+  --brand-ink: oklch(0.44 0.17 295);
+  --brand-soft: oklch(0.955 0.028 300);
+  --on-brand: oklch(1 0 0);
+
+  --good: oklch(0.56 0.15 152);
+  --good-soft: oklch(0.955 0.04 152);
+  --warn: oklch(0.62 0.14 75);
+  --warn-soft: oklch(0.96 0.05 85);
+  --bad: oklch(0.56 0.19 22);
+  --bad-soft: oklch(0.955 0.03 22);
+
+  --shadow-color: 296 40% 40%;
+
+  /*
+    Guest list columns, shared by the header and every row so they stay in
+    lockstep. Under 44rem the row falls back to flex and folds phone/side onto a
+    second line — six columns can't fit a narrow screen without clipping the
+    action buttons off the edge.
+
+    The last two tracks are fixed, not `auto`: the header and each row are
+    separate grids, so content-sized tracks would settle a few pixels apart and
+    the columns would visibly fail to line up.
+  */
+  --guest-cols: 1rem minmax(7rem, 2fr) minmax(6.5rem, 1fr) minmax(5rem, 1fr) 9.5rem 4.75rem;
+}
+
+.dark {
+  --bg: oklch(0.176 0.021 300);
+  --bg-glow: oklch(0.3 0.07 300);
+  --surface: oklch(0.216 0.023 300);
+  --surface-2: oklch(0.245 0.025 300);
+  --surface-hover: oklch(0.275 0.028 300);
+  --ink: oklch(0.955 0.008 300);
+  --muted: oklch(0.72 0.025 300);
+  --line: oklch(0.315 0.026 300);
+  --brand: oklch(0.72 0.16 296);
+  --brand-hover: oklch(0.78 0.15 296);
+  --brand-ink: oklch(0.8 0.13 296);
+  --brand-soft: oklch(0.3 0.06 298);
+  --on-brand: oklch(0.16 0.03 300);
+
+  --good: oklch(0.75 0.16 152);
+  --good-soft: oklch(0.31 0.07 155);
+  --warn: oklch(0.8 0.13 82);
+  --warn-soft: oklch(0.33 0.06 80);
+  --bad: oklch(0.72 0.16 22);
+  --bad-soft: oklch(0.32 0.08 22);
+
+  --shadow-color: 290 30% 4%;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-glow: var(--bg-glow);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-on-brand: var(--on-brand);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+
+  --font-sans: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
+
+  /*
+    The built-in CSS easings are too weak to read as intentional. These are the
+    stronger variants used everywhere in this app.
+  */
+  --ease-snap: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-flow: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* The guest list needs more room than Tailwind's sm before six columns fit. */
+  --breakpoint-list: 44rem;
+
+  --radius-card: 18px;
+  --radius-control: 11px;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tracking is size-specific: large text reads too loose at 0, body doesn't. */
+  h1,
+  h2 {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  h3 {
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand-ink);
+  }
+}
+
+@layer components {
+  /* The soft lavender wash behind the whole app. */
+  .aurora::before {
+    content: '';
+    position: fixed;
+    inset-block-start: -22rem;
+    inset-inline: -10rem;
+    height: 44rem;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 70%);
+    opacity: 0.75;
+  }
+
+  /*
+    Entrance for grouped elements (stat tiles, connection cards). Staggered by
+    an inline animation-delay at the call site; 8px is enough to read as
+    movement without the list feeling like it assembles itself.
+  */
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .rise-in {
+    opacity: 0;
+    animation: rise-in 360ms var(--ease-snap) forwards;
+  }
+
+  .guest-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .guest-head {
+    display: none;
+  }
+
+  @media (min-width: 44rem) {
+    .guest-row,
+    .guest-head {
+      display: grid;
+      grid-template-columns: var(--guest-cols);
+      align-items: center;
+      gap: 0.75rem;
+    }
+  }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
+      0 4px 16px -8px hsl(var(--shadow-color) / 0.14);
+  }
+
+  /* Shared skin for every text-ish control so they line up pixel for pixel. */
+  .control {
+    width: 100%;
+    background-color: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--ink);
+    transition:
+      border-color 140ms ease,
+      background-color 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  .control::placeholder {
+    color: var(--muted);
+  }
+
+  .control:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in oklab, var(--brand) 28%, var(--line));
+  }
+
+  .control:focus {
+    outline: none;
+    background-color: var(--surface);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 18%, transparent);
+  }
+}
+
+/*
+  Reduced motion means fewer and gentler animations, not zero: opacity and
+  colour changes still aid comprehension, movement is what causes trouble.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

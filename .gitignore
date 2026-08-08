@@ -1,6 +1,14 @@
 node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
 .wwebjs_auth*/
 .wwebjs_cache/
 data/
 *.log
 .DS_Store
+
+# Machine-local Claude Code state; .agents/skills holds the shared skill copies.
+.claude/settings.local.json
+.claude/worktrees/
+.claude/skills/
