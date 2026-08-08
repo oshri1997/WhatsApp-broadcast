@@ -322,17 +322,29 @@ export function createAccount(
       for (const candidate of [report.queryWidExists, report.phone, report.lid, base]) {
         if (typeof candidate !== 'string' || tried[candidate]) continue;
         try {
-          const chat = (await w.WWebJS.getChat(candidate, { getAsModel: false })) as {
-            id?: Wid & { isLid?: () => boolean };
-          } | null;
-          tried[candidate] = chat
-            ? {
-                // The chat we get back can be addressed differently from what
-                // we asked for - that difference is the whole problem.
-                actualChatId: chat.id?._serialized ?? null,
-                isLid: typeof chat.id?.isLid === 'function' ? chat.id.isLid() : null,
-              }
-            : 'no chat';
+          const wid = w.require('WAWebWidFactory').createWid(candidate) as Wid;
+          const collections = w.require('WAWebCollections') as unknown as {
+            Chat: { get(wid: Wid): unknown };
+          };
+
+          // Distinguish a chat that already exists in WhatsApp's store from one
+          // findOrCreateLatestChat conjures on the spot: sending appears to
+          // work only for the former, and a chat stub that never lands in the
+          // collection would explain a send that neither errors nor delivers.
+          const existingBefore = !!collections.Chat.get(wid);
+          const created = (await (
+            w.require('WAWebFindChatAction') as unknown as {
+              findOrCreateLatestChat(wid: Wid): Promise<{ chat?: unknown } | null>;
+            }
+          ).findOrCreateLatestChat(wid)) as { chat?: { id?: Wid; msgs?: { models?: unknown[] } } } | null;
+
+          tried[candidate] = {
+            existedBeforeLookup: existingBefore,
+            findOrCreateReturnedChat: !!created?.chat,
+            registeredInCollectionAfter: !!collections.Chat.get(wid),
+            actualChatId: created?.chat?.id?._serialized ?? null,
+            loadedMessages: created?.chat?.msgs?.models?.length ?? null,
+          };
         } catch (err) {
           tried[candidate] = `ERROR: ${(err as Error).message}`;
         }
