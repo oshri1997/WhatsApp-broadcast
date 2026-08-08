@@ -64,9 +64,13 @@ function createAccount(dataPath, onMessage) {
 
     if (onMessage) {
       client.on('message', async (message) => {
-        // Group chats have multiple participants - RSVP matching only makes
-        // sense for direct 1:1 conversations with a guest.
-        if (message.from.endsWith('@g.us')) return;
+        // Only handle direct 1:1 chats - a real guest is always addressed as
+        // @c.us (phone-based) or @lid (WhatsApp's privacy ID). Everything
+        // else (@g.us groups, @newsletter channels, @broadcast/status, and
+        // any future chat type) has no single phone number to match against
+        // a guest, so skip it outright rather than trying and failing to
+        // resolve one.
+        if (!/@(c\.us|lid)$/.test(message.from)) return;
 
         console.log(`WhatsApp client (${dataPath}) received a message from ${message.from}`);
         try {
