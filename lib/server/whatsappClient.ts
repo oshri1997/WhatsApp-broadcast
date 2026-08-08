@@ -16,7 +16,7 @@ export interface OutgoingMedia {
 
 export interface WhatsAppAccount {
   init(): void;
-  getStatus(): { status: AccountStatus; qrDataUrl: string | null };
+  getStatus(): { status: AccountStatus; qrDataUrl: string | null; phone: string | null };
   sendMessage(phone: string, text: string, media?: OutgoingMedia | null): Promise<void>;
   sendRaw(chatId: string, text: string): Promise<void>;
   logout(): Promise<void>;
@@ -34,10 +34,13 @@ export function createAccount(
   const state: {
     status: AccountStatus;
     qrDataUrl: string | null;
+    /** Which phone number this session is actually linked to, once ready. */
+    phone: string | null;
     client: Client | null;
   } = {
     status: 'INITIALIZING',
     qrDataUrl: null,
+    phone: null,
     client: null,
   };
 
@@ -76,17 +79,22 @@ export function createAccount(
     client.on('ready', () => {
       state.status = 'READY';
       state.qrDataUrl = null;
+      // A restored session says nothing about *which* phone it belongs to, so
+      // surface the linked number - otherwise you can only find out by sending.
+      state.phone = client.info?.wid?.user ?? null;
     });
 
     client.on('disconnected', () => {
       state.status = 'DISCONNECTED';
       state.qrDataUrl = null;
+      state.phone = null;
       state.client = null;
     });
 
     client.on('auth_failure', () => {
       state.status = 'DISCONNECTED';
       state.qrDataUrl = null;
+      state.phone = null;
       state.client = null;
     });
 
@@ -148,7 +156,13 @@ export function createAccount(
   }
 
   function getStatus() {
-    return { status: state.status, qrDataUrl: state.qrDataUrl };
+    // Read client.info live rather than trusting the value captured on
+    // 'ready': the event fires once, and a session restored from disk can
+    // reach READY before anything is listening.
+    if (state.status === 'READY' && !state.phone) {
+      state.phone = state.client?.info?.wid?.user ?? null;
+    }
+    return { status: state.status, qrDataUrl: state.qrDataUrl, phone: state.phone };
   }
 
   async function sendMessage(phone: string, text: string, media?: OutgoingMedia | null) {
@@ -187,6 +201,7 @@ export function createAccount(
       state.client = null;
       state.status = 'INITIALIZING';
       state.qrDataUrl = null;
+      state.phone = null;
     }
   }
 

@@ -27,6 +27,8 @@ export interface AccountView {
   label: string;
   status: AccountStatus;
   qrDataUrl: string | null;
+  /** The WhatsApp number this connection is linked to, known once READY. */
+  phone: string | null;
 }
 
 export interface SendFailure {

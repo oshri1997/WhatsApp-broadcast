@@ -85,6 +85,12 @@ function AccountCard({ account, index, canRemove }: { account: AccountView; inde
         </Badge>
       </div>
 
+      {account.phone && (
+        <p className="text-[0.8125rem] text-muted">
+          מחובר למספר <span dir="ltr" className="text-ink tabular-nums">+{account.phone}</span>
+        </p>
+      )}
+
       {account.status === 'QR' && account.qrDataUrl && (
         <div className="flex flex-col items-center gap-2 rounded-[var(--radius-control)] bg-surface-2 p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
