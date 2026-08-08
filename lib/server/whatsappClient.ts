@@ -361,7 +361,17 @@ export function createAccount(
     const chatId = await resolveChatId(phone);
     if (!chatId) throw new Error('המספר אינו רשום בוואטסאפ');
 
-    const returned = await state.client.sendMessage(chatId, text);
+    // addAndSendMsgToChat returns [msgPromise, sendMsgResultPromise] and the
+    // library only awaits the first unless waitUntilMsgSent is set - so a
+    // failure in the actual transmission is left in an unobserved promise and
+    // never surfaces. Force the wait so the real error can be seen.
+    let returned: unknown;
+    let sendError: string | null = null;
+    try {
+      returned = await state.client.sendMessage(chatId, text, { waitUntilMsgSent: true });
+    } catch (err) {
+      sendError = (err as Error).message;
+    }
     const page = (state.client as unknown as { pupPage: import('puppeteer').Page }).pupPage;
 
     // Give WhatsApp a moment to register the outgoing message and its ack.
@@ -408,7 +418,12 @@ export function createAccount(
       text
     );
 
-    return { chatId, sendMessageReturned: returned ? 'Message object' : String(returned), stored };
+    return {
+      chatId,
+      sendError,
+      sendMessageReturned: returned ? 'Message object' : String(returned),
+      stored,
+    };
   }
 
   // Replies directly to an existing chat by its own chat ID, unlike
