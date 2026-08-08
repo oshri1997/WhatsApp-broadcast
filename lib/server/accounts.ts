@@ -122,10 +122,37 @@ export function retryDisconnected(): void {
   }
 }
 
-/** Closes every account's browser cleanly. Called on process shutdown - see instrumentation.ts. */
+/** Closes every account's browser cleanly - see registerShutdownHandlers() below. */
 export async function shutdownAll(): Promise<void> {
   await Promise.all(Array.from(state.accounts.values()).map((a) => a.wa.shutdown()));
 }
+
+// A bare Ctrl+C (or SIGTERM) kills node before Chromium gets a chance to
+// close, which can leave a WhatsApp account's profile mid-write - corrupting
+// the very login keys LocalAuth is supposed to restore on the next launch,
+// forcing an unnecessary QR re-scan. Close every browser first.
+//
+// Registered here rather than in instrumentation.ts: Next.js bundles that
+// file through webpack instead of running it as plain node, and that pass
+// doesn't honor serverExternalPackages - pulling in whatsapp-web.js's
+// dependency tree from there breaks the build. This module is only ever
+// reached from app/api/**/route.ts, which bundles it correctly.
+singleton('accounts-shutdown-handlers', () => {
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`\n${signal} received - closing WhatsApp sessions...`);
+    // Don't let a hung Chromium hold the process open forever.
+    const timeout = new Promise((resolve) => setTimeout(resolve, 8000));
+    await Promise.race([shutdownAll(), timeout]);
+    process.exit(0);
+  };
+
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  return true;
+});
 
 // Case/whitespace-insensitive match between a guest's "side" value and a
 // configured account's label.
