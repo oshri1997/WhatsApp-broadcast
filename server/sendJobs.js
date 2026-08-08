@@ -1,4 +1,5 @@
 const accounts = require('./accounts');
+const guestStore = require('./guestStore');
 
 const jobs = new Map();
 let nextJobId = 1;
@@ -8,13 +9,15 @@ const MAX_DELAY_MS = 9000;
 const LONG_PAUSE_EVERY = 25;
 const LONG_PAUSE_MS = 30000;
 
+const RSVP_PROMPT = '\n\n🙏 נשמח לדעת אם תגיעו - אפשר להשיב כאן: כן / לא / אולי';
+
 function randomDelay() {
   return MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
 }
 
 function renderMessage(template, guest) {
   const base = guest.customMessage && guest.customMessage.trim() ? guest.customMessage : template;
-  return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name);
+  return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name) + RSVP_PROMPT;
 }
 
 function sleep(ms) {
@@ -49,6 +52,7 @@ async function runJob(job, guests, messageTemplate, media) {
     try {
       const text = renderMessage(messageTemplate, guest);
       await accounts.sendMessage(guest.accountId, guest.phone, text, media);
+      guestStore.update(guest.id, { invited: true });
       job.sent++;
     } catch (err) {
       job.failed.push({ name: guest.name, phone: guest.phoneRaw || guest.phone, reason: err.message });

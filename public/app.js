@@ -19,6 +19,7 @@ const el = {
   addGuestBtn: document.getElementById('add-guest-btn'),
   addGuestError: document.getElementById('add-guest-error'),
   guestsTableBody: document.querySelector('#guests-table tbody'),
+  rsvpSummary: document.getElementById('rsvp-summary'),
   searchInput: document.getElementById('search-input'),
   selectAllBtn: document.getElementById('select-all-btn'),
   deselectAllBtn: document.getElementById('deselect-all-btn'),
@@ -366,6 +367,9 @@ function renderGuests() {
       sideCell.appendChild(warning);
     }
 
+    const rsvpCell = document.createElement('td');
+    rsvpCell.appendChild(rsvpBadge(guest));
+
     const editCell = document.createElement('td');
     const editBtn = document.createElement('button');
     editBtn.className = 'secondary';
@@ -385,7 +389,7 @@ function renderGuests() {
     const flagCell = document.createElement('td');
     flagCell.textContent = guest.valid ? '' : '⚠️ מספר לא תקין';
 
-    tr.append(checkboxCell, nameCell, phoneCell, sideCell, editCell, flagCell);
+    tr.append(checkboxCell, nameCell, phoneCell, sideCell, rsvpCell, editCell, flagCell);
     el.guestsTableBody.appendChild(tr);
 
     if (state.editingGuestId === guest.id) {
@@ -394,6 +398,58 @@ function renderGuests() {
   }
 
   updateSelectedCount();
+  renderRsvpSummary();
+}
+
+function rsvpBadge(guest) {
+  const span = document.createElement('span');
+  span.className = 'rsvp-badge';
+
+  if (!guest.invited) {
+    span.classList.add('pending');
+    span.textContent = 'טרם נשלח';
+  } else if (guest.rsvpStatus === 'yes') {
+    span.classList.add('yes');
+    span.textContent = guest.rsvpAwaitingCount ? '✅ מגיע (ממתין לכמות)' : `✅ מגיע (${guest.rsvpCount ?? '?'})`;
+  } else if (guest.rsvpStatus === 'no') {
+    span.classList.add('no');
+    span.textContent = '❌ לא מגיע';
+  } else if (guest.rsvpStatus === 'maybe') {
+    span.classList.add('maybe');
+    span.textContent = '🤔 אולי';
+  } else {
+    span.classList.add('pending');
+    span.textContent = '⏳ ממתין לתשובה';
+  }
+
+  return span;
+}
+
+function renderRsvpSummary() {
+  const invited = state.guests.filter((g) => g.invited);
+  const yes = invited.filter((g) => g.rsvpStatus === 'yes');
+  const no = invited.filter((g) => g.rsvpStatus === 'no');
+  const maybe = invited.filter((g) => g.rsvpStatus === 'maybe');
+  const pending = invited.filter((g) => !g.rsvpStatus);
+  const confirmedCount = yes.reduce((sum, g) => sum + (g.rsvpCount || 0), 0);
+
+  if (invited.length === 0) {
+    el.rsvpSummary.innerHTML = '';
+    return;
+  }
+
+  el.rsvpSummary.innerHTML = '';
+  const items = [
+    `✅ מגיעים: ${yes.length} מוזמנים (${confirmedCount} אנשים בסך הכל)`,
+    `❌ לא מגיעים: ${no.length}`,
+    `🤔 אולי: ${maybe.length}`,
+    `⏳ ממתינים לתשובה: ${pending.length}`,
+  ];
+  for (const text of items) {
+    const span = document.createElement('span');
+    span.textContent = text;
+    el.rsvpSummary.appendChild(span);
+  }
 }
 
 function buildEditorRow(guest) {
@@ -401,7 +457,7 @@ function buildEditorRow(guest) {
   editorTr.classList.add('editing-row');
 
   const cell = document.createElement('td');
-  cell.colSpan = 6;
+  cell.colSpan = 7;
   cell.className = 'custom-msg-editor';
 
   const fieldsGrid = document.createElement('div');
@@ -588,7 +644,23 @@ async function loadExistingGuests() {
   renderGuests();
 }
 
+// Lighter refresh used for polling: picks up RSVP replies as they arrive
+// without resetting the organizer's current checkbox selection (unlike
+// loadExistingGuests, which is only for the initial page load).
+async function pollGuests() {
+  if (state.editingGuestId !== null) return;
+  const res = await fetch('/api/guests');
+  const data = await res.json();
+  state.guests = data.guests;
+  const validIds = new Set(data.guests.filter((g) => g.valid).map((g) => g.id));
+  for (const id of state.selected) {
+    if (!validIds.has(id)) state.selected.delete(id);
+  }
+  renderGuests();
+}
+
 loadExistingGuests();
 loadExistingMedia();
 fetchAccounts();
+setInterval(pollGuests, 4000);
 setInterval(fetchAccounts, 2500);

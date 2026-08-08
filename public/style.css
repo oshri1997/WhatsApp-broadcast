@@ -231,6 +231,47 @@ textarea {
   font-size: 0.9rem;
 }
 
+.rsvp-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.rsvp-summary span {
+  font-size: 0.85rem;
+  background: #f7f4fc;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.rsvp-badge {
+  font-size: 0.8rem;
+  border-radius: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.rsvp-badge.yes {
+  background: #e2f4e6;
+  color: #1e7d3a;
+}
+
+.rsvp-badge.no {
+  background: #fbe4e1;
+  color: #c0392b;
+}
+
+.rsvp-badge.maybe {
+  background: #fdf3d8;
+  color: #8a6d1a;
+}
+
+.rsvp-badge.pending {
+  background: #eee;
+  color: #666;
+}
+
 .table-wrap {
   max-height: 360px;
   overflow-y: auto;
