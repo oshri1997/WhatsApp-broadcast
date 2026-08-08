@@ -6,6 +6,11 @@ const YES_RE = /^(כן|כן בטח|כן ברור|מגיע|מגיעה|מגיעי�
 const NO_RE = /^(לא|לא נגיע|לא נגיעה|לא מגיע|לא מגיעה|לא נוכל|לצערי לא|לצערנו לא)/;
 const MAYBE_RE = /^(אולי|לא בטוח|לא בטוחה|לא יודע|לא יודעת|עוד לא יודע|עוד לא יודעת|נראה|תלוי)/;
 
+// Free-text commands a guest can send at any point to correct an earlier
+// answer, instead of only being able to answer once during the initial flow.
+const STATUS_COMMAND_RE = /^(סטטוס|שנה סטטוס|לשנות סטטוס|עדכון סטטוס|תיקון סטטוס)/;
+const COUNT_COMMAND_RE = /^(תקן|לתקן|תקן כמות|שנה כמות|לשנות כמות|עדכון כמות|תיקון כמות)/;
+
 function parseYesNoMaybe(text: string): RsvpStatus | null {
   const t = text.trim();
   if (NO_RE.test(t)) return 'no';
@@ -57,11 +62,31 @@ export async function handleIncomingMessage(
       console.error(`Failed to send RSVP reply to guest ${guest.id}:`, err.message);
     });
 
+  const t = text.trim();
+
+  // Commands take priority over whatever step the guest is on, so someone
+  // mid count-flow (or long done) can always jump back and correct something
+  // instead of being stuck with their first answer.
+  if (STATUS_COMMAND_RE.test(t)) {
+    guestStore.update(guest.id, { rsvpStatus: null, rsvpCount: null, rsvpAwaitingCount: false });
+    await reply('בסדר, נעדכן מחדש - מגיעים? אפשר לענות כן / לא / אולי 🙂');
+    return;
+  }
+  if (COUNT_COMMAND_RE.test(t)) {
+    if (guest.rsvpStatus !== 'yes') {
+      await reply('קודם צריך לאשר הגעה - אפשר לענות כן / לא / אולי, ואז נעדכן כמות 🙂');
+      return;
+    }
+    guestStore.update(guest.id, { rsvpAwaitingCount: true });
+    await reply('בטח! כמה אנשים בסך הכל מגיעים (כולל אותך)?');
+    return;
+  }
+
   if (guest.rsvpAwaitingCount) {
     const count = parseCount(text);
     if (count != null) {
       guestStore.update(guest.id, { rsvpCount: count, rsvpAwaitingCount: false });
-      await reply(`תודה רבה! נרשמו ${count} אורחים מגיעים 🎉`);
+      await reply(`תודה רבה! נרשמו ${count} אורחים מגיעים 🎉 (טעות במספר? אפשר לכתוב "תקן" בכל שלב)`);
     } else {
       await reply('לא הבנתי - כמה אנשים בסך הכל מגיעים? (אפשר לענות רק במספר)');
     }
@@ -74,7 +99,7 @@ export async function handleIncomingMessage(
     await reply('איזה כיף! כמה אנשים בסך הכל מגיעים (כולל אותך)?');
   } else if (status === 'no') {
     guestStore.update(guest.id, { rsvpStatus: 'no', rsvpCount: 0, rsvpAwaitingCount: false });
-    await reply('תודה רבה על העדכון, נתגעגע! 💔');
+    await reply('תודה רבה על העדכון, נתגעגע! 💔 (טעות? אפשר לכתוב "סטטוס" בכל שלב כדי לתקן)');
   } else if (status === 'maybe') {
     guestStore.update(guest.id, { rsvpStatus: 'maybe', rsvpAwaitingCount: false });
     await reply('בסדר גמור, נשמח לעדכון כשתדעו/י יותר 🙏');
@@ -82,5 +107,11 @@ export async function handleIncomingMessage(
     // Only nudge if they've never answered - avoid pestering guests who
     // already RSVP'd and are just sending an unrelated follow-up message.
     await reply('היי! רק לוודא שקיבלת את ההזמנה - מגיעים? אפשר לענות כן / לא / אולי 🙂');
+  } else {
+    // Already answered and this message didn't match a command or a new
+    // status - point them at how to fix something instead of going silent.
+    await reply(
+      'אם צריך לתקן משהו: "סטטוס" משנה את אישור ההגעה, "תקן" משנה את כמות המגיעים 🙂'
+    );
   }
 }
