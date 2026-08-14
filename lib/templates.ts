@@ -28,5 +28,10 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
 
 export const REMINDER_TEMPLATE = MESSAGE_TEMPLATES[4];
 
-/** Mirrors the server-side suffix so the composer preview matches what is sent. */
-export const RSVP_PROMPT = '\n\n🙏 נשמח לדעת אם תגיעו - אפשר להשיב כאן: כן / לא / אולי';
+/**
+ * Sent as its own follow-up message right after the invitation, not appended
+ * to it - guests can answer freely in their own words (the RSVP parser
+ * already understands many phrasings), these are just the suggested ones.
+ */
+export const RSVP_QUESTION_MESSAGE =
+  'מגיעים לחתונה? 💍\nאפשר לענות כאן:\n\n✅ כן\n❌ לא\n❓ אולי';

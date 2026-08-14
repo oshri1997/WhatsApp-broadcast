@@ -5,7 +5,7 @@ import { Select } from '@base-ui/react/select';
 import { toast } from 'sonner';
 import type { InvitationMediaView, ResolvedGuest } from '@/lib/types';
 import { api, apiJson, hasMultipleAccounts, run, useApp } from '@/lib/store';
-import { MESSAGE_TEMPLATES, RSVP_PROMPT } from '@/lib/templates';
+import { MESSAGE_TEMPLATES, RSVP_QUESTION_MESSAGE } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Hint, Label, Textarea } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
@@ -148,10 +148,9 @@ export function ComposePanel() {
   const anyReady = accounts.some((a) => a.status === 'READY');
   const selectedGuests = guests.filter((g) => selected.has(g.id));
   const previewGuest: ResolvedGuest | undefined = selectedGuests[0] ?? guests[0];
-  const preview =
-    (previewGuest
-      ? message.replaceAll('{{שם}}', previewGuest.name).replaceAll('{{name}}', previewGuest.name)
-      : message) + RSVP_PROMPT;
+  const preview = previewGuest
+    ? message.replaceAll('{{שם}}', previewGuest.name).replaceAll('{{name}}', previewGuest.name)
+    : message;
 
   const personalCount = selectedGuests.filter((g) => g.customMessage?.trim()).length;
 
@@ -232,10 +231,10 @@ export function ComposePanel() {
         </div>
       </div>
 
-      {/* Live preview of exactly what lands on a guest's phone, RSVP line included. */}
+      {/* Live preview of the two separate messages a guest actually receives. */}
       <div className="lg:sticky lg:top-24 lg:self-start">
         <Label>תצוגה מקדימה</Label>
-        <div className="rounded-[var(--radius-card)] bg-[oklch(0.93_0.02_150)] p-4 dark:bg-[oklch(0.28_0.02_150)]">
+        <div className="flex flex-col gap-2 rounded-[var(--radius-card)] bg-[oklch(0.93_0.02_150)] p-4 dark:bg-[oklch(0.28_0.02_150)]">
           <div className="ms-auto w-fit max-w-full rounded-2xl rounded-tl-md bg-[oklch(0.95_0.05_145)] px-3 py-2 text-[0.9rem] leading-relaxed whitespace-pre-wrap shadow-sm dark:bg-[oklch(0.38_0.05_150)]">
             {attachment.url && attachment.kind === 'image' && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -248,10 +247,13 @@ export function ComposePanel() {
             )}
             {preview}
           </div>
+          <div className="ms-auto w-fit max-w-full rounded-2xl rounded-tl-md bg-[oklch(0.95_0.05_145)] px-3 py-2 text-[0.9rem] leading-relaxed whitespace-pre-wrap shadow-sm dark:bg-[oklch(0.38_0.05_150)]">
+            {RSVP_QUESTION_MESSAGE}
+          </div>
         </div>
         <Hint className="mt-2">
           {previewGuest
-            ? `לדוגמה עבור ${previewGuest.name}`
+            ? `לדוגמה עבור ${previewGuest.name} - שתי הודעות נפרדות, ההזמנה ואז שאלת אישור ההגעה`
             : 'הוסיפו מוזמנים כדי לראות איך זה נראה עם שם אמיתי'}
         </Hint>
       </div>

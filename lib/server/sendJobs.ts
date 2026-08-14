@@ -1,4 +1,5 @@
 import type { Guest, SendJob } from '@/lib/types';
+import { RSVP_QUESTION_MESSAGE } from '@/lib/templates';
 import * as accounts from './accounts';
 import * as guestStore from './guestStore';
 import type { OutgoingMedia } from './whatsappClient';
@@ -15,8 +16,9 @@ const MIN_DELAY_MS = 4000;
 const MAX_DELAY_MS = 9000;
 const LONG_PAUSE_EVERY = 25;
 const LONG_PAUSE_MS = 30000;
-
-const RSVP_PROMPT = '\n\n🙏 נשמח לדעת אם תגיעו - אפשר להשיב כאן: כן / לא / אולי';
+// Gap between the invitation and the RSVP question that follows it, so they
+// land as two distinct bubbles instead of racing each other.
+const RSVP_FOLLOWUP_DELAY_MS = 2000;
 
 export type SendTarget = Guest & { accountId: string };
 
@@ -26,7 +28,7 @@ function randomDelay() {
 
 export function renderMessage(template: string, guest: Pick<Guest, 'name' | 'customMessage'>) {
   const base = guest.customMessage?.trim() ? guest.customMessage : template;
-  return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name) + RSVP_PROMPT;
+  return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name);
 }
 
 function sleep(ms: number) {
@@ -72,6 +74,17 @@ async function runJob(
       await accounts.sendMessage(guest.accountId, guest.phone!, text, media);
       guestStore.update(guest.id, { invited: true });
       job.sent++;
+
+      // The RSVP question is a separate message on purpose - if it fails,
+      // the guest still got the invitation, so don't count that as a failed
+      // send. They can also just reply to the invitation itself; the RSVP
+      // parser doesn't require this message to have arrived first.
+      await sleep(RSVP_FOLLOWUP_DELAY_MS);
+      await accounts
+        .sendMessage(guest.accountId, guest.phone!, RSVP_QUESTION_MESSAGE)
+        .catch((err: Error) =>
+          console.error(`Failed to send RSVP question to guest ${guest.id}:`, err.message)
+        );
     } catch (err) {
       job.failed.push({
         name: guest.name,
