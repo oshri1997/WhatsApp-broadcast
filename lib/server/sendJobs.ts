@@ -38,7 +38,8 @@ function sleep(ms: number) {
 export function createJob(
   guests: SendTarget[],
   messageTemplate: string,
-  media: OutgoingMedia | null
+  media: OutgoingMedia | null,
+  sendRsvpQuestion: boolean
 ): string {
   const id = String(state.nextId++);
   const job: SendJob = {
@@ -51,7 +52,7 @@ export function createJob(
   };
   state.jobs.set(id, job);
 
-  runJob(job, guests, messageTemplate, media).catch((err: Error) => {
+  runJob(job, guests, messageTemplate, media, sendRsvpQuestion).catch((err: Error) => {
     job.status = 'done';
     job.error = err.message;
   });
@@ -63,7 +64,8 @@ async function runJob(
   job: SendJob,
   guests: SendTarget[],
   messageTemplate: string,
-  media: OutgoingMedia | null
+  media: OutgoingMedia | null,
+  sendRsvpQuestion: boolean
 ) {
   for (let i = 0; i < guests.length; i++) {
     const guest = guests[i];
@@ -75,16 +77,17 @@ async function runJob(
       guestStore.update(guest.id, { invited: true });
       job.sent++;
 
-      // The RSVP question is a separate message on purpose - if it fails,
-      // the guest still got the invitation, so don't count that as a failed
-      // send. They can also just reply to the invitation itself; the RSVP
-      // parser doesn't require this message to have arrived first.
-      await sleep(RSVP_FOLLOWUP_DELAY_MS);
-      await accounts
-        .sendMessage(guest.accountId, guest.phone!, RSVP_QUESTION_MESSAGE)
-        .catch((err: Error) =>
-          console.error(`Failed to send RSVP question to guest ${guest.id}:`, err.message)
-        );
+      if (sendRsvpQuestion) {
+        // The RSVP question is a separate message on purpose - if it fails,
+        // the guest still got the invitation, so don't count that as a
+        // failed send.
+        await sleep(RSVP_FOLLOWUP_DELAY_MS);
+        await accounts
+          .sendMessage(guest.accountId, guest.phone!, RSVP_QUESTION_MESSAGE)
+          .catch((err: Error) =>
+            console.error(`Failed to send RSVP question to guest ${guest.id}:`, err.message)
+          );
+      }
     } catch (err) {
       job.failed.push({
         name: guest.name,
