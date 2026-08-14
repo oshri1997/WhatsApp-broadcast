@@ -204,19 +204,26 @@ export function createAccount(
     }
 
     const jid = result.jid;
-    let sent;
+    let content;
     if (media) {
       const buffer = Buffer.from(media.data, 'base64');
-      const content = media.mimetype.startsWith('video/')
+      content = media.mimetype.startsWith('video/')
         ? { video: buffer, caption: text, mimetype: media.mimetype }
         : { image: buffer, caption: text, mimetype: media.mimetype };
-      sent = await state.sock.sendMessage(jid, content);
     } else {
-      sent = await state.sock.sendMessage(jid, { text });
+      content = { text };
+    }
+
+    // sendMessage() can resolve with undefined rather than throwing on a
+    // transient hiccup instead of a real per-number failure (a known upstream
+    // quirk: https://github.com/WhiskeySockets/Baileys/issues/2066) - one
+    // retry clears it in practice, so don't report that as a hard failure yet.
+    let sent = await state.sock.sendMessage(jid, content);
+    if (!sent) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      sent = await state.sock.sendMessage(jid, content);
     }
     if (!sent) {
-      // sendMessage() can resolve with undefined rather than throwing when
-      // the send doesn't go through. Never report that as success.
       throw new Error('השליחה לא הושלמה בוואטסאפ - ייתכן שהמספר לא ניתן לשליחה מהחשבון הזה כרגע');
     }
   }
