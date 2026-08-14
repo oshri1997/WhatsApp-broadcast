@@ -18,7 +18,7 @@ interface State {
 
 // The label is what a guest's "side" column is matched against, so losing it on
 // restart would silently break routing even though the WhatsApp session in
-// .wwebjs_auth_<id> survives. Persist id+label alongside the session folders.
+// .baileys_auth_<id> survives. Persist id+label alongside the session folders.
 const ACCOUNTS_FILE = path.join(process.cwd(), 'data', 'accounts.json');
 
 function readPersisted(): { id: string; label: string }[] {
@@ -43,7 +43,7 @@ function persist(state: State) {
 const state = singleton<State>('accounts', () => ({ accounts: new Map(), nextId: 1 }));
 
 function spawn(id: string, label: string): Account {
-  const wa = createAccount(`.wwebjs_auth_${id}`, ({ chatId, phone, body }) => {
+  const wa = createAccount(`.baileys_auth_${id}`, ({ chatId, phone, body }) => {
     rsvp.handleIncomingMessage(chatId, phone, body, wa.sendRaw).catch((err: Error) => {
       console.error(`RSVP handling failed for account ${id}:`, err.message);
     });
@@ -64,7 +64,7 @@ export function create(label?: string): string {
 /**
  * Brings the in-memory accounts back in line with what's on disk. Called from
  * the accounts endpoint rather than at import time so a cold Next.js server
- * doesn't spawn Chromium until the UI is actually open.
+ * doesn't open WhatsApp connections until the UI is actually open.
  */
 export function ensureInitialized(): void {
   if (state.accounts.size > 0) return;
@@ -122,28 +122,28 @@ export function retryDisconnected(): void {
   }
 }
 
-/** Closes every account's browser cleanly - see registerShutdownHandlers() below. */
+/** Closes every account's WebSocket cleanly - see the shutdown handlers below. */
 export async function shutdownAll(): Promise<void> {
   await Promise.all(Array.from(state.accounts.values()).map((a) => a.wa.shutdown()));
 }
 
-// A bare Ctrl+C (or SIGTERM) kills node before Chromium gets a chance to
-// close, which can leave a WhatsApp account's profile mid-write - corrupting
-// the very login keys LocalAuth is supposed to restore on the next launch,
-// forcing an unnecessary QR re-scan. Close every browser first.
+// A bare Ctrl+C (or SIGTERM) kills node mid-write of the auth-state JSON
+// files Baileys persists on every credential rotation, which can corrupt
+// them and force an unnecessary QR re-scan on the next launch. Close every
+// socket first so pending writes finish.
 //
 // Registered here rather than in instrumentation.ts: Next.js bundles that
 // file through webpack instead of running it as plain node, and that pass
-// doesn't honor serverExternalPackages - pulling in whatsapp-web.js's
-// dependency tree from there breaks the build. This module is only ever
-// reached from app/api/**/route.ts, which bundles it correctly.
+// doesn't honor serverExternalPackages - pulling in Baileys' dependency tree
+// from there breaks the build. This module is only ever reached from
+// app/api/**/route.ts, which bundles it correctly.
 singleton('accounts-shutdown-handlers', () => {
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`\n${signal} received - closing WhatsApp sessions...`);
-    // Don't let a hung Chromium hold the process open forever.
+    // Don't let a hung connection hold the process open forever.
     const timeout = new Promise((resolve) => setTimeout(resolve, 8000));
     await Promise.race([shutdownAll(), timeout]);
     process.exit(0);
@@ -171,24 +171,6 @@ export function count(): number {
 
 export function first(): Account | null {
   return state.accounts.values().next().value ?? null;
-}
-
-function firstReady(): Account {
-  const account = Array.from(state.accounts.values()).find(
-    (a) => a.wa.getStatus().status === 'READY'
-  );
-  if (!account) throw new Error('אין חשבון וואטסאפ מחובר');
-  return account;
-}
-
-/** Diagnostics for a single number on the first connected account. */
-export async function diagnoseNumber(phone: string): Promise<unknown> {
-  return firstReady().wa.diagnose(phone);
-}
-
-/** Sends one real message and reports what WhatsApp actually stored. */
-export async function testSendToNumber(phone: string, text: string): Promise<unknown> {
-  return firstReady().wa.testSend(phone, text);
 }
 
 export async function sendMessage(

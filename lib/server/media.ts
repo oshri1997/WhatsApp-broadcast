@@ -42,7 +42,7 @@ export function read(): { buffer: Buffer; meta: MediaMeta } | null {
   return { buffer: fs.readFileSync(BIN_FILE), meta };
 }
 
-/** The base64 payload whatsapp-web.js's MessageMedia expects. */
+/** The base64 payload the WhatsApp client's sendMessage() expects. */
 export function readForSending(): { data: string; mimetype: string; filename: string } | null {
   const file = read();
   if (!file) return null;
