@@ -2,10 +2,9 @@ const path = require('path');
 const express = require('express');
 const multer = require('multer');
 
-// whatsapp-web.js drives a real browser under the hood; transient navigation/
-// network hiccups there can surface as unhandled rejections instead of going
-// through our own promise chains. Log them instead of letting them kill the
-// whole server.
+// The WhatsApp connection layer can surface transient network/socket errors
+// as unhandled rejections instead of going through our own promise chains.
+// Log them instead of letting them kill the whole server.
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled rejection:', err);
 });
