@@ -73,6 +73,9 @@ export async function parseGuestsFromBuffer(buffer: Buffer): Promise<ParsedGuest
     const side = sideCol !== -1 ? cellText(row.getCell(sideCol)).trim() : '';
 
     if (!name && !phoneRaw) continue;
+    // Some spreadsheet tools repeat the header row as the first data row.
+    // Never turn that structural row into an invalid guest.
+    if (NAME_HEADERS.includes(name) && PHONE_HEADERS.includes(phoneRaw)) continue;
 
     const normalized = normalizePhone(phoneRaw);
 

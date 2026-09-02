@@ -3,7 +3,7 @@
 import NumberFlow from '@number-flow/react';
 import { clsx } from 'clsx';
 import { useApp } from '@/lib/store';
-import { CheckIcon, ClockIcon, PhoneIcon, QuestionIcon, UsersIcon, XIcon } from '@/components/icons';
+import { CheckIcon, PhoneIcon, UsersIcon } from '@/components/icons';
 
 type Tone = 'brand' | 'good' | 'bad' | 'warn' | 'neutral';
 
@@ -57,43 +57,29 @@ export function StatTiles() {
   const guests = useApp((s) => s.guests);
   const accounts = useApp((s) => s.accounts);
 
-  const invited = guests.filter((g) => g.invited);
-  const yes = invited.filter((g) => g.rsvpStatus === 'yes');
-  const no = invited.filter((g) => g.rsvpStatus === 'no');
-  const maybe = invited.filter((g) => g.rsvpStatus === 'maybe');
-  const pending = invited.filter((g) => !g.rsvpStatus);
-  const people = yes.reduce((sum, g) => sum + (g.rsvpCount || 0), 0);
+  const valid = guests.filter((g) => g.valid).length;
   const ready = accounts.filter((a) => a.status === 'READY').length;
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
       <Tile
         index={0}
         icon={<UsersIcon />}
         label="סה״כ מוזמנים"
         value={guests.length}
-        sub={`${invited.length} כבר קיבלו הזמנה`}
+        sub="ברשימת התפוצה"
         tone="brand"
       />
       <Tile
         index={1}
         icon={<CheckIcon />}
-        label="מגיעים"
-        value={yes.length}
-        sub={`${people} אנשים בסך הכל`}
+        label="ניתן לשלוח אליהם"
+        value={valid}
+        sub={valid === guests.length ? 'כל המספרים תקינים' : `${guests.length - valid} דורשים תיקון`}
         tone="good"
       />
-      <Tile index={2} icon={<XIcon />} label="לא מגיעים" value={no.length} tone="bad" />
-      <Tile index={3} icon={<QuestionIcon />} label="אולי" value={maybe.length} tone="warn" />
       <Tile
-        index={4}
-        icon={<ClockIcon />}
-        label="ממתינים לתשובה"
-        value={pending.length}
-        tone="neutral"
-      />
-      <Tile
-        index={5}
+        index={2}
         icon={<PhoneIcon />}
         label="חיבורי וואטסאפ"
         value={ready}

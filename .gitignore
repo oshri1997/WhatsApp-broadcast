@@ -3,6 +3,9 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 .baileys_auth*/
+.wwebjs_auth*/
+.wwebjs_cache/
+outputs/
 data/
 *.log
 .DS_Store

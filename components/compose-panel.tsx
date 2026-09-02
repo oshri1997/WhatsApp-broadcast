@@ -167,8 +167,7 @@ export function ComposePanel() {
 
     const ok = await confirm({
       title: `לשלוח את ההזמנה ל-${selected.size} מוזמנים?`,
-      description:
-        'ההודעות נשלחות אחת אחרי השנייה עם השהיה אקראית ביניהן. אי אפשר לבטל הודעה שכבר יצאה.',
+      description: 'ההודעות יישלחו כברודקאסט, ללא בקשה לאישור הגעה. ההודעות נשלחות אחת אחרי השנייה עם השהיה אקראית ביניהן.',
       confirmLabel: 'שליחה',
     });
     if (!ok) return;
@@ -239,7 +238,7 @@ export function ComposePanel() {
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={send} disabled={sending || selected.size === 0}>
             <SendIcon className="size-4" />
-            שליחת הזמנות
+            שליחת ברודקאסט
             {selected.size > 0 && <span className="tabular-nums opacity-80">({selected.size})</span>}
           </Button>
           {!anyReady && (

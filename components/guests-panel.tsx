@@ -3,31 +3,20 @@
 import * as React from 'react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
-import type { ResolvedGuest, RsvpFilter } from '@/lib/types';
+import type { ResolvedGuest } from '@/lib/types';
 import { api, apiJson, hasMultipleAccounts, run, useApp } from '@/lib/store';
-import { isSendable, matchesRsvpFilter, matchesSearch } from '@/lib/guests';
-import { REMINDER_TEMPLATE } from '@/lib/templates';
+import { isSendable, matchesSearch } from '@/lib/guests';
 import { Button } from '@/components/ui/button';
 import { Hint, Input } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
 import { GuestRow } from '@/components/guest-row';
 import {
-  BellIcon,
   DownloadIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
   UploadIcon,
 } from '@/components/icons';
-
-const FILTERS: { value: RsvpFilter; label: string }[] = [
-  { value: '', label: 'הכל' },
-  { value: 'yes', label: 'מגיעים' },
-  { value: 'no', label: 'לא מגיעים' },
-  { value: 'maybe', label: 'אולי' },
-  { value: 'pending', label: 'ממתינים' },
-  { value: 'not-invited', label: 'טרם נשלח' },
-];
 
 function ExcelImport() {
   const setGuests = useApp((s) => s.setGuests);
@@ -168,31 +157,14 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
   const selectedCount = useApp((s) => s.selected.size);
   const search = useApp((s) => s.search);
   const setSearch = useApp((s) => s.setSearch);
-  const rsvpFilter = useApp((s) => s.rsvpFilter);
-  const setRsvpFilter = useApp((s) => s.setRsvpFilter);
   const selectVisible = useApp((s) => s.selectVisible);
   const clearSelection = useApp((s) => s.clearSelection);
-  const selectPendingReplies = useApp((s) => s.selectPendingReplies);
-  const setMessage = useApp((s) => s.setMessage);
   const refreshGuests = useApp((s) => s.refreshGuests);
   const confirm = useConfirm();
 
   const multipleAccounts = hasMultipleAccounts(accounts);
-  const visible = guests.filter(
-    (g) => matchesSearch(g, search) && matchesRsvpFilter(g, rsvpFilter)
-  );
+  const visible = guests.filter((g) => matchesSearch(g, search));
   const sendableCount = guests.filter((g) => isSendable(g, multipleAccounts)).length;
-
-  const remindPending = async () => {
-    const count = selectPendingReplies();
-    if (count === 0) {
-      toast.info('אין כרגע מוזמנים שממתינים לתשובה');
-      return;
-    }
-    setMessage(REMINDER_TEMPLATE.text);
-    toast.success(`נבחרו ${count} מוזמנים ונטענה תבנית התזכורת`);
-    onGoToCompose();
-  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -223,28 +195,9 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <Button size="sm" variant="ghost" onClick={clearSelection}>
             ניקוי בחירה
           </Button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {FILTERS.map((filter) => {
-            const active = rsvpFilter === filter.value;
-            return (
-              <button
-                key={filter.value || 'all'}
-                type="button"
-                onClick={() => setRsvpFilter(filter.value)}
-                aria-pressed={active}
-                className={clsx(
-                  'rounded-full border px-3 py-1 text-[0.8125rem] font-medium transition-[background-color,color,border-color,transform] duration-150 ease-snap active:scale-[0.97]',
-                  active
-                    ? 'border-brand bg-brand text-on-brand'
-                    : 'border-line bg-surface text-muted hover:bg-surface-hover hover:text-ink'
-                )}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
+          <Button size="sm" variant="primary" onClick={onGoToCompose} disabled={selectedCount === 0}>
+            לשליחת ההזמנה ({selectedCount})
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -253,10 +206,6 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
             <span className="tabular-nums">{sendableCount}</span> שניתן לשלוח אליהם
           </span>
           <div className="ms-auto flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={remindPending}>
-              <BellIcon className="size-4" />
-              תזכורת לממתינים
-            </Button>
             <Button
               size="sm"
               variant="secondary"
@@ -275,7 +224,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
                 onClick={async () => {
                   const ok = await confirm({
                     title: 'לנקות את כל רשימת המוזמנים?',
-                    description: `${guests.length} מוזמנים יימחקו, כולל אישורי ההגעה שהתקבלו. כדאי לייצא לאקסל קודם.`,
+                    description: `${guests.length} מוזמנים יימחקו. כדאי לייצא לאקסל קודם.`,
                     confirmLabel: 'ניקוי הרשימה',
                     tone: 'danger',
                   });
@@ -299,7 +248,6 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <span>שם המוזמן</span>
           <span>טלפון</span>
           <span>צד</span>
-          <span>אישור הגעה</span>
           <span />
         </div>
 
@@ -307,7 +255,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <p className="p-8 text-center text-sm text-muted">
             {guests.length === 0
               ? 'עדיין אין מוזמנים — העלו קובץ אקסל או הוסיפו מוזמן ידנית.'
-              : 'אין מוזמנים שמתאימים לחיפוש או לסינון הנוכחי.'}
+              : 'אין מוזמנים שמתאימים לחיפוש הנוכחי.'}
           </p>
         ) : (
           <ul className="divide-y divide-line">

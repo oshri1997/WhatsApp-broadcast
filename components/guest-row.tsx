@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 import type { ResolvedGuest } from '@/lib/types';
 import { apiJson, api, run, useApp } from '@/lib/store';
-import { isSendable, rsvpDescription } from '@/lib/guests';
+import { isSendable } from '@/lib/guests';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Label, Textarea } from '@/components/ui/field';
@@ -121,7 +121,6 @@ export function GuestRow({
 
   const editing = editingGuestId === guest.id;
   const sendable = isSendable(guest, multipleAccounts);
-  const rsvp = rsvpDescription(guest);
 
   const sideCell = guest.resolvedAccountId ? (
     <span className="text-muted">{guest.resolvedAccountLabel}</span>
@@ -165,16 +164,12 @@ export function GuestRow({
 
         <div
           dir="ltr"
-          className="hidden truncate text-start text-[0.875rem] text-muted tabular-nums list:block"
+          className="hidden truncate text-end text-[0.875rem] text-muted tabular-nums list:block"
         >
           {guest.phoneRaw || guest.phone || ''}
         </div>
 
         <div className="hidden min-w-0 truncate text-[0.875rem] list:block">{sideCell}</div>
-
-        <Badge tone={rsvp.tone} className="shrink-0">
-          {rsvp.label}
-        </Badge>
 
         <div className="flex shrink-0 gap-1">
           <Button
