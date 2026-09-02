@@ -12,6 +12,7 @@ export interface UserRecord {
 }
 
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const ADMIN_FILE = path.join(DATA_DIR, 'admin-password.json');
 
 function read(): UserRecord[] {
   try {
@@ -25,6 +26,15 @@ function read(): UserRecord[] {
 function save(users: UserRecord[]) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function readAdminPassword() {
+  try {
+    const value = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8')) as { salt?: string; passwordHash?: string };
+    return value.salt && value.passwordHash ? { salt: value.salt, passwordHash: value.passwordHash } : null;
+  } catch {
+    return null;
+  }
 }
 
 function passwordHash(password: string, salt: string) {
@@ -51,8 +61,10 @@ function usernameFromEmail(email: string, users: UserRecord[]) {
 }
 
 export function authenticate(username: string, password: string): 'admin' | 'user' | null {
-  if (username === process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD && equals(password, process.env.ADMIN_PASSWORD)) {
-    return 'admin';
+  if (username === process.env.ADMIN_USERNAME) {
+    const savedAdmin = readAdminPassword();
+    if (savedAdmin && equals(passwordHash(password, savedAdmin.salt), savedAdmin.passwordHash)) return 'admin';
+    if (!savedAdmin && process.env.ADMIN_PASSWORD && equals(password, process.env.ADMIN_PASSWORD)) return 'admin';
   }
   const user = read().find((item) => item.username === username);
   return user && equals(passwordHash(password, user.salt), user.passwordHash) ? 'user' : null;
@@ -79,4 +91,22 @@ export function create(email: string) {
   users.push(record);
   save(users);
   return { username: record.username, password, email: record.email };
+}
+
+export function changePassword(username: string, currentPassword: string, nextPassword: string) {
+  if (nextPassword.length < 12) throw new Error('הסיסמה החדשה חייבת להכיל לפחות 12 תווים');
+  if (currentPassword === nextPassword) throw new Error('הסיסמה החדשה חייבת להיות שונה מהנוכחית');
+  if (!authenticate(username, currentPassword)) throw new Error('הסיסמה הנוכחית שגויה');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const passwordHashValue = passwordHash(nextPassword, salt);
+  if (username === process.env.ADMIN_USERNAME) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(ADMIN_FILE, JSON.stringify({ salt, passwordHash: passwordHashValue }));
+    return;
+  }
+  const users = read();
+  const index = users.findIndex((user) => user.username === username);
+  if (index < 0) throw new Error('המשתמש לא נמצא');
+  users[index] = { ...users[index], salt, passwordHash: passwordHashValue };
+  save(users);
 }

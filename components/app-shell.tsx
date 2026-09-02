@@ -76,6 +76,7 @@ export function AppShell() {
         <div className="nav-actions">
           <ConnectionPill />
           <ThemeToggle />
+          <a href="/account/password" className="text-xs font-semibold text-muted hover:text-foreground">סיסמה</a>
           <button
             type="button"
             className="text-xs font-semibold text-muted hover:text-foreground"
