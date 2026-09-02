@@ -4,6 +4,7 @@ import type { AccountView } from '@/lib/types';
 import { createAccount, type OutgoingMedia, type WhatsAppAccount } from './whatsappClient';
 import * as rsvp from './rsvp';
 import { singleton } from './singleton';
+import { DATA_DIR } from './dataDir';
 
 export interface Account {
   id: string;
@@ -19,7 +20,7 @@ interface State {
 // The label is what a guest's "side" column is matched against, so losing it on
 // restart would silently break routing even though the WhatsApp session in
 // .baileys_auth_<id> survives. Persist id+label alongside the session folders.
-const ACCOUNTS_FILE = path.join(process.cwd(), 'data', 'accounts.json');
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
 
 function readPersisted(): { id: string; label: string }[] {
   try {
@@ -43,7 +44,7 @@ function persist(state: State) {
 const state = singleton<State>('accounts', () => ({ accounts: new Map(), nextId: 1 }));
 
 function spawn(id: string, label: string): Account {
-  const wa = createAccount(`.baileys_auth_${id}`, ({ chatId, phone, body }) => {
+  const wa = createAccount(path.join(DATA_DIR, `.baileys_auth_${id}`), ({ chatId, phone, body }) => {
     rsvp.handleIncomingMessage(chatId, phone, body, wa.sendRaw).catch((err: Error) => {
       console.error(`RSVP handling failed for account ${id}:`, err.message);
     });

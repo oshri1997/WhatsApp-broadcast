@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { DATA_DIR } from './dataDir';
 import type { MediaKind } from '@/lib/types';
 
 // The invitation image/video used to live in memory as a base64 string that
 // was also handed to the browser as a giant data: URL. Writing it to disk
 // instead means it survives a server restart and the UI can preview it through
 // a normal cacheable URL rather than inlining megabytes into the HTML.
-const DIR = path.join(process.cwd(), 'data');
+const DIR = DATA_DIR;
 const BIN_FILE = path.join(DIR, 'invitation-media.bin');
 const META_FILE = path.join(DIR, 'invitation-media.json');
 

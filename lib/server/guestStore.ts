@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { DATA_DIR } from './dataDir';
 import type { Guest } from '@/lib/types';
 import { singleton } from './singleton';
 
@@ -9,7 +10,7 @@ import { singleton } from './singleton';
 // how they RSVP'd - without this, a restart between sending invites and guests
 // replying would silently break RSVP matching (the guest would simply no
 // longer exist in memory).
-const DATA_FILE = path.join(process.cwd(), 'data', 'guests.json');
+const DATA_FILE = path.join(DATA_DIR, 'guests.json');
 
 interface State {
   guests: Guest[];

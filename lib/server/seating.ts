@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { DATA_DIR } from './dataDir';
 import { singleton } from './singleton';
 
 // Seating chart state: the tables the organizer created plus which guest sits
 // at which table. A guest "party" (their RSVP headcount) is seated as one
 // unit - splitting a family across tables is not a thing this app does.
 // Persisted like the guest list so a restart doesn't wipe the chart.
-const DATA_FILE = path.join(process.cwd(), 'data', 'seating.json');
+const DATA_FILE = path.join(DATA_DIR, 'seating.json');
 
 export interface SeatingTable {
   id: number;
