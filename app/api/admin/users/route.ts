@@ -14,3 +14,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { username } = await request.json();
+    if (typeof username !== 'string') return NextResponse.json({ error: 'המשתמש חסר' }, { status: 400 });
+    return NextResponse.json({ user: users.resetPassword(username) });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { username } = await request.json();
+    if (typeof username !== 'string') return NextResponse.json({ error: 'המשתמש חסר' }, { status: 400 });
+    users.remove(username);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+  }
+}

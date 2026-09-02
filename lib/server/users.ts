@@ -93,6 +93,24 @@ export function create(email: string) {
   return { username: record.username, password, email: record.email };
 }
 
+export function resetPassword(username: string) {
+  const users = read();
+  const index = users.findIndex((user) => user.username === username);
+  if (index < 0) throw new Error('המשתמש לא נמצא');
+  const password = randomPassword();
+  const salt = crypto.randomBytes(16).toString('hex');
+  users[index] = { ...users[index], salt, passwordHash: passwordHash(password, salt) };
+  save(users);
+  return { username: users[index].username, email: users[index].email, password };
+}
+
+export function remove(username: string) {
+  const users = read();
+  const nextUsers = users.filter((user) => user.username !== username);
+  if (nextUsers.length === users.length) throw new Error('המשתמש לא נמצא');
+  save(nextUsers);
+}
+
 export function changePassword(username: string, currentPassword: string, nextPassword: string) {
   if (nextPassword.length < 12) throw new Error('הסיסמה החדשה חייבת להכיל לפחות 12 תווים');
   if (currentPassword === nextPassword) throw new Error('הסיסמה החדשה חייבת להיות שונה מהנוכחית');
