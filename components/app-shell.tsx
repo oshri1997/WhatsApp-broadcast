@@ -76,6 +76,13 @@ export function AppShell() {
         <div className="nav-actions">
           <ConnectionPill />
           <ThemeToggle />
+          <button
+            type="button"
+            className="text-xs font-semibold text-muted hover:text-foreground"
+            onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.assign('/login'); }}
+          >
+            התנתקות
+          </button>
         </div>
       </header>
 
