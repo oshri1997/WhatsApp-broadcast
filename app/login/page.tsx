@@ -17,7 +17,8 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    window.location.assign(new URLSearchParams(window.location.search).get('next') || '/');
+    const { role } = await response.json();
+    window.location.assign(role === 'admin' ? '/admin' : new URLSearchParams(window.location.search).get('next') || '/');
   }
 
   return <main className="mx-auto flex min-h-dvh w-full max-w-md items-center p-5"><form onSubmit={submit} className="card w-full space-y-5 p-7"><div><p className="dashboard-kicker">כניסה מאובטחת</p><h1 className="mt-1 text-2xl font-bold">הזמנות חתונה בוואטסאפ</h1></div><label className="block text-sm font-medium">שם משתמש<input required name="username" autoComplete="username" className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2" /></label><label className="block text-sm font-medium">סיסמה<input required name="password" type="password" autoComplete="current-password" className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2" /></label>{error && <p className="text-sm text-danger">{error}</p>}<button disabled={loading} className="w-full rounded-lg bg-brand px-4 py-2.5 font-bold text-on-brand disabled:opacity-60">{loading ? 'מתחבר…' : 'כניסה למערכת'}</button></form></main>;
