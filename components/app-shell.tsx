@@ -106,7 +106,47 @@ function DashboardHero() {
   );
 }
 
-export function AppShell() {
+function WelcomeDialog({ username }: { username: string }) {
+  const [open, setOpen] = React.useState(false);
+  const storageKey = `wedding-broadcast-welcome:${username}`;
+
+  React.useEffect(() => {
+    if (!window.localStorage.getItem(storageKey)) setOpen(true);
+  }, [storageKey]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
+
+  const close = () => {
+    window.localStorage.setItem(storageKey, 'seen');
+    setOpen(false);
+  };
+
+  if (!open) return null;
+  return (
+    <div className="welcome-dialog__backdrop" role="presentation" onMouseDown={close}>
+      <section className="welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title" onMouseDown={(event) => event.stopPropagation()}>
+        <span className="welcome-dialog__mark" aria-hidden><span /></span>
+        <p className="welcome-dialog__eyebrow">התחלה נעימה</p>
+        <h2 id="welcome-title">מזל טוב לרגל הנישואין, {username}!</h2>
+        <p>כאן אפשר לנהל את שליחת ההזמנות בוואטסאפ, בצורה אישית ומסודרת.</p>
+        <ol className="welcome-dialog__steps">
+          <li><strong>מחברים WhatsApp</strong><span>סורקים QR מהטלפון.</span></li>
+          <li><strong>מוסיפים מוזמנים</strong><span>מעלים קובץ או מוסיפים ידנית.</span></li>
+          <li><strong>כותבים ושולחים</strong><span>בוחרים נמענים ושולחים ברודקאסט.</span></li>
+        </ol>
+        <p className="welcome-dialog__hint">ליד פעולות מרכזיות תמצאו סימן שאלה קטן עם הסבר קצר.</p>
+        <button type="button" className="welcome-dialog__close" onClick={close}>בואו נתחיל</button>
+      </section>
+    </div>
+  );
+}
+
+export function AppShell({ username }: { username: string }) {
   const [tab, setTab] = React.useState<TabValue>('guests');
   const [scrolled, setScrolled] = React.useState(false);
   const loaded = useApp((s) => s.loaded);
@@ -132,6 +172,8 @@ export function AppShell() {
           </div>
         </div>
         <nav className="nav-actions" aria-label="פעולות חשבון">
+          <span className="nav-greeting" title={`שלום, ${username}`}><span>שלום,</span> <strong>{username}</strong></span>
+          <span className="nav-actions__divider" aria-hidden="true" />
           <ConnectionPill />
           <span className="nav-actions__divider" aria-hidden="true" />
           <ThemeToggle />
@@ -197,6 +239,7 @@ export function AppShell() {
       {!loaded && <p className="text-center text-sm text-muted">טוען…</p>}
 
       <SendProgress />
+      <WelcomeDialog username={username} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input, Hint } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { useConfirm } from '@/components/ui/confirm';
+import { HelpTip } from '@/components/ui/help-tip';
 import { LinkOffIcon, PlusIcon, TrashIcon } from '@/components/icons';
 
 const STATUS: Record<AccountStatus, { label: string; tone: 'good' | 'warn' | 'bad' | 'neutral' }> = {
@@ -179,10 +180,13 @@ export function ConnectionsPanel() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Hint>
-        אפשר לחבר כמה מספרי וואטסאפ (למשל שלך ושל בן/בת הזוג). כשמחוברים שני חיבורים ומעלה, עמודת
-        ״צד״ של כל מוזמן חייבת להתאים לשם של אחד החיבורים כאן — וההזמנה תישלח מהמספר הזה.
-      </Hint>
+      <div className="flex items-start gap-1.5">
+        <Hint>
+          אפשר לחבר כמה מספרי וואטסאפ (למשל שלך ושל בן/בת הזוג). כשמחוברים שני חיבורים ומעלה, עמודת
+          ״צד״ של כל מוזמן חייבת להתאים לשם של אחד החיבורים כאן — וההזמנה תישלח מהמספר הזה.
+        </Hint>
+        <HelpTip label="עזרה לחיבורי WhatsApp">לכל מספר חדש סורקים קוד QR מתוך WhatsApp בטלפון: הגדרות, מכשירים מקושרים, קישור מכשיר.</HelpTip>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {accounts.map((account, index) => (

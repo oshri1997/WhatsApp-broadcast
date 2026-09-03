@@ -9,6 +9,7 @@ import { isSendable, matchesSearch } from '@/lib/guests';
 import { Button } from '@/components/ui/button';
 import { Hint, Input } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
+import { HelpTip } from '@/components/ui/help-tip';
 import { GuestRow } from '@/components/guest-row';
 import {
   DownloadIcon,
@@ -71,6 +72,7 @@ function ExcelImport() {
         <DownloadIcon className="size-3.5" />
         הורדת תבנית CSV למילוי
       </a>
+      <HelpTip label="מה כוללת התבנית?">התבנית כוללת כותרות בלבד: שם המוזמן, מספר טלפון וצד אופציונלי.</HelpTip>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
         <input
           ref={inputRef}
@@ -199,6 +201,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <Button size="sm" variant="secondary" onClick={selectVisible}>
             בחירת הנראים
           </Button>
+          <HelpTip label="עזרה לבחירת הנראים">בוחר את כל המוזמנים שמופיעים כרגע לפי החיפוש.</HelpTip>
           <Button size="sm" variant="ghost" onClick={clearSelection}>
             ניקוי בחירה
           </Button>
@@ -223,6 +226,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
               <DownloadIcon className="size-4" />
               ייצוא לאקסל
             </Button>
+            <HelpTip label="עזרה לייצוא לאקסל">מוריד את רשימת המוזמנים, הטלפונים, הצדדים וההודעות האישיות לקובץ Excel.</HelpTip>
             {guests.length > 0 && (
               <Button
                 size="sm"

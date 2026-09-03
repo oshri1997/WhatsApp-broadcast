@@ -9,6 +9,7 @@ import { MESSAGE_TEMPLATES } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Hint, Label, Textarea } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
+import { HelpTip } from '@/components/ui/help-tip';
 import { CheckIcon, ChevronIcon, ImageIcon, SendIcon, TrashIcon } from '@/components/icons';
 
 function TemplatePicker() {
@@ -192,7 +193,10 @@ export function ComposePanel() {
         </div>
 
         <div>
-          <Label htmlFor="message">ההודעה</Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="message">ההודעה</Label>
+            <HelpTip label="עזרה לכתיבת הודעה">אפשר להשתמש ב־{'{{שם}}'} כדי להוסיף את שם המוזמן באופן אישי לכל הודעה.</HelpTip>
+          </div>
           <Textarea
             id="message"
             rows={9}
@@ -210,6 +214,7 @@ export function ComposePanel() {
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <ImageIcon className="size-4 text-brand" />
             תמונה או סרטון להזמנה (אופציונלי)
+            <HelpTip label="עזרה לצירוף קובץ">מצרפים קובץ אחד לכל השליחות; הוא יישלח עם הטקסט ככיתוב.</HelpTip>
           </h3>
           <Hint className="mb-3">
             הקובץ יישלח לכולם עם ההודעה כתיאור מתחתיו. סרטונים גדולים עלולים להיכשל בשליחה — עדיף
