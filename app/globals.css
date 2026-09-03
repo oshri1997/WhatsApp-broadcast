@@ -154,9 +154,11 @@
     justify-content: space-between;
     min-height: 3.75rem;
     gap: 1rem;
-    padding: 0.25rem 0;
-    background: color-mix(in oklab, var(--bg) 88%, transparent);
-    backdrop-filter: blur(12px);
+    /* The shell already supplies the page atmosphere. Keeping this layer
+       transparent prevents a second, disconnected rectangle above the hero. */
+    padding: 0.65rem 0 0.35rem;
+    background: transparent;
+    backdrop-filter: none;
   }
 
   .app-nav::before {
