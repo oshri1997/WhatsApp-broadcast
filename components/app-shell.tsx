@@ -121,13 +121,17 @@ export function AppShell() {
   return (
     <div className="home-shell mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
       <a className="skip-link" href="#workspace">דילוג לאזור העבודה</a>
-      <header className="app-nav sticky top-0 z-20 -mx-4 sm:-mx-6">
+      <header className="app-nav sticky top-0 z-20">
         <div className="nav-brand">
           <span aria-hidden className="nav-brand__mark"><span /></span>
-          <h1 className="nav-brand__title">הזמנות חתונה בוואטסאפ</h1>
+          <div className="min-w-0">
+            <p className="nav-brand__eyebrow">מרכז השליטה</p>
+            <h1 className="nav-brand__title">הזמנות חתונה בוואטסאפ</h1>
+          </div>
         </div>
-        <div className="nav-actions">
+        <nav className="nav-actions" aria-label="פעולות חשבון">
           <ConnectionPill />
+          <span className="nav-actions__divider" aria-hidden="true" />
           <ThemeToggle />
           <a href="/account/password" className="text-xs font-semibold text-muted hover:text-foreground">סיסמה</a>
           <button
@@ -137,7 +141,7 @@ export function AppShell() {
           >
             התנתקות
           </button>
-        </div>
+        </nav>
       </header>
 
       <DashboardHero onOpenGuests={() => setTab('guests')} onOpenCompose={() => setTab('compose')} />

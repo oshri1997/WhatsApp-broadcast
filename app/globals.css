@@ -152,23 +152,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 4rem;
+    min-height: 3.75rem;
     gap: 1rem;
-    border-bottom: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
-    padding: 0.625rem max(1rem, calc((100% - 80rem) / 2));
-    background: color-mix(in oklab, var(--bg) 94%, var(--surface));
-    box-shadow: 0 7px 22px -22px hsl(var(--shadow-color) / 0.8);
-    backdrop-filter: blur(18px);
+    padding: 0.25rem 0;
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
   }
 
   .app-nav::before {
-    content: '';
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--brand), transparent);
-    opacity: 0.55;
+    content: none;
   }
 
   .nav-brand {
@@ -188,6 +180,14 @@
     border-radius: 0.75rem;
     background: linear-gradient(145deg, var(--brand-soft), color-mix(in oklab, var(--brand) 23%, var(--surface)));
     box-shadow: inset 0 1px 0 color-mix(in oklab, white 55%, transparent), 0 6px 15px -11px hsl(var(--shadow-color) / 0.8);
+  }
+
+  .nav-brand__eyebrow {
+    margin-bottom: 0.08rem;
+    color: var(--brand-ink);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
   }
 
   .nav-brand__mark > span {
@@ -225,10 +225,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: color-mix(in oklab, var(--surface) 82%, transparent);
-    padding: 0.4rem 0.7rem;
+    padding: 0.35rem 0.25rem;
     font-size: 0.75rem;
     font-weight: 700;
     white-space: nowrap;
@@ -249,11 +246,34 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    border: 1px solid color-mix(in oklab, var(--line) 88%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--surface) 84%, transparent);
+    box-shadow: 0 8px 18px -16px hsl(var(--shadow-color) / 0.6);
+    padding: 0.2rem 0.38rem 0.2rem 0.55rem;
+  }
+
+  .nav-actions > a,
+  .nav-actions > button:not(:first-child) {
+    border-radius: 0.55rem;
+    padding: 0.35rem 0.3rem;
+    transition: color 160ms ease, background-color 160ms ease;
+  }
+
+  .nav-actions > a:hover,
+  .nav-actions > button:not(:first-child):hover {
+    background: var(--surface-hover);
+  }
+
+  .nav-actions__divider {
+    width: 1px;
+    height: 1.1rem;
+    background: var(--line);
   }
 
   @media (max-width: 34rem) {
     .app-nav {
-      min-height: 3.75rem;
+      min-height: 3.5rem;
     }
 
     .nav-connection {
@@ -261,7 +281,13 @@
     }
 
     .nav-actions {
-      gap: 0;
+      gap: 0.25rem;
+      padding-inline: 0.25rem;
+    }
+
+    .nav-actions__divider,
+    .nav-actions > a {
+      display: none;
     }
   }
 
