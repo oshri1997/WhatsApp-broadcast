@@ -32,7 +32,7 @@ function Tile({
 }) {
   return (
     <div
-      className="card rise-in flex flex-col gap-2 p-4"
+      className="stat-tile card rise-in flex flex-col gap-2 p-4"
       // Short stagger (45ms) so the row cascades in without feeling slow.
       style={{ animationDelay: `${index * 45}ms` }}
     >
@@ -61,7 +61,7 @@ export function StatTiles() {
   const ready = accounts.filter((a) => a.status === 'READY').length;
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+    <div className="stats-grid grid grid-cols-2 gap-3 md:grid-cols-3">
       <Tile
         index={0}
         icon={<UsersIcon />}

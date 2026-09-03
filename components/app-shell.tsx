@@ -58,6 +58,47 @@ function ConnectionPill() {
   );
 }
 
+function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => void; onOpenCompose: () => void }) {
+  const guests = useApp((s) => s.guests);
+  const accounts = useApp((s) => s.accounts);
+  const selected = useApp((s) => s.selected.size);
+  const ready = accounts.filter((account) => account.status === 'READY').length;
+  const canSend = selected > 0 && ready > 0;
+
+  return (
+    <section className="dashboard-hero" aria-labelledby="dashboard-title">
+      <div className="dashboard-hero__copy">
+        <p className="dashboard-hero__eyebrow"><span /> שולחים הזמנות, ברגע הנכון</p>
+        <h2 id="dashboard-title">ההזמנה שלכם<br /><em>כבר בדרך.</em></h2>
+        <p className="dashboard-hero__description">
+          מרכז אחד לרשימת המוזמנים, הודעה אישית ואישורי הגעה — בלי לעבור בין גיליונות וצ׳אטים.
+        </p>
+        <div className="dashboard-hero__actions">
+          <button type="button" className="hero-primary" onClick={canSend ? onOpenCompose : onOpenGuests}>
+            {canSend ? `המשך לשליחה · ${selected}` : guests.length ? 'בחירת מוזמנים' : 'התחלת רשימה'}
+            <span aria-hidden>←</span>
+          </button>
+          <span className="hero-connection"><i className={ready ? 'is-ready' : ''} /> {ready ? `${ready} חיבורים מוכנים` : 'נדרש חיבור WhatsApp'}</span>
+        </div>
+        <div className="hero-metrics" aria-label="סטטוס מהיר">
+          <span><strong>{guests.length}</strong> מוזמנים</span>
+          <span><strong>{selected}</strong> נבחרו</span>
+          <span><strong>{ready}</strong> חיבורים</span>
+        </div>
+      </div>
+      <div className="dashboard-hero__visual" aria-hidden="true">
+        <div className="hero-glow" />
+        <div className="hero-orbit hero-orbit--outer" />
+        <div className="hero-orbit hero-orbit--inner" />
+        <div className="hero-chat hero-chat--one"><span>מזל טוב! נשמח לחגוג איתכם</span><time>19:48</time></div>
+        <div className="hero-chat hero-chat--two"><span>בעזרת השם, מגיעים</span><time>19:51 ✓✓</time></div>
+        <div className="hero-seal"><span className="hero-seal__envelope" /><small>2026</small></div>
+        <div className="hero-spark hero-spark--one" /><div className="hero-spark hero-spark--two" />
+      </div>
+    </section>
+  );
+}
+
 export function AppShell() {
   const [tab, setTab] = React.useState<TabValue>('guests');
   const loaded = useApp((s) => s.loaded);
@@ -65,12 +106,10 @@ export function AppShell() {
   useLiveData();
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
+    <div className="home-shell mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
       <header className="app-nav sticky top-0 z-20 -mx-4 sm:-mx-6">
         <div className="nav-brand">
-          <span aria-hidden className="nav-brand__mark">
-            💌
-          </span>
+          <span aria-hidden className="nav-brand__mark"><span /></span>
           <h1 className="nav-brand__title">הזמנות חתונה בוואטסאפ</h1>
         </div>
         <div className="nav-actions">
@@ -87,17 +126,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <section className="dashboard-intro card overflow-hidden" aria-labelledby="dashboard-title">
-        <div className="dashboard-intro__copy">
-          <p className="dashboard-kicker">מרכז השליטה</p>
-          <h2 id="dashboard-title">שולחים הזמנה, בפשטות</h2>
-          <p>מעלים רשימה, בוחרים את הנמענים ושולחים את ההזמנה בוואטסאפ.</p>
-        </div>
-        <div className="dashboard-intro__status">
-          <span className="dashboard-status-dot" aria-hidden />
-          <span>המערכת מתעדכנת אוטומטית</span>
-        </div>
-      </section>
+      <DashboardHero onOpenGuests={() => setTab('guests')} onOpenCompose={() => setTab('compose')} />
 
       <StatTiles />
 
@@ -124,8 +153,8 @@ export function AppShell() {
           <Tabs.Indicator className="absolute top-1 left-0 z-0 h-[calc(100%-0.5rem)] w-(--active-tab-width) translate-x-(--active-tab-left) rounded-[11px] bg-brand transition-[translate,width] duration-250 ease-flow" />
         </Tabs.List>
 
-        <div className="flex items-baseline gap-3 border-b border-line pb-3">
-          <span className="text-[0.75rem] font-bold tracking-[0.1em] text-brand-ink">{activeTab.step}</span>
+        <div className="workflow-heading flex items-baseline gap-3 border-b border-line pb-3">
+          <span className="workflow-heading__number">{activeTab.step}</span>
           <div>
             <h2 className="text-base font-bold">{activeTab.label}</h2>
             <p className="text-[0.8125rem] text-muted">{activeTab.description}</p>
