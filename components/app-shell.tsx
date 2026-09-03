@@ -56,7 +56,7 @@ function ConnectionPill() {
   );
 }
 
-function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => void; onOpenCompose: () => void }) {
+function DashboardHero() {
   const guests = useApp((s) => s.guests);
   const accounts = useApp((s) => s.accounts);
   const selected = useApp((s) => s.selected.size);
@@ -77,10 +77,6 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
           מרכז אחד לרשימת המוזמנים, הודעה אישית ושליחה מסודרת — בלי לעבור בין גיליונות וצ׳אטים.
         </p>
         <div className="dashboard-hero__actions">
-          <button type="button" className="hero-primary" onClick={canSend ? onOpenCompose : onOpenGuests}>
-            {canSend ? `המשך לשליחה · ${selected}` : guests.length ? 'בחירת מוזמנים' : 'התחלת רשימה'}
-            <span aria-hidden>←</span>
-          </button>
           <span className="hero-connection"><i className={ready ? 'is-ready' : ''} /> {ready ? `${ready} חיבורים מוכנים` : 'נדרש חיבור WhatsApp'}</span>
         </div>
         <div className="hero-metrics" aria-label="סטטוס מהיר">
@@ -150,7 +146,7 @@ export function AppShell() {
         </nav>
       </header>
 
-      <DashboardHero onOpenGuests={() => setTab('guests')} onOpenCompose={() => setTab('compose')} />
+      <DashboardHero />
 
       <StatTiles />
 
