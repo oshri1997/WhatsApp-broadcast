@@ -64,6 +64,13 @@ function ExcelImport() {
         נדרשות העמודות <strong>שם המוזמן</strong> ו-<strong>מספר טלפון</strong>, ואופציונלית{' '}
         <strong>צד</strong>. טעינת קובץ מחליפה את הרשימה הקיימת.
       </Hint>
+      <a
+        href="/api/guests/template"
+        className="inline-flex items-center gap-1 text-[0.8125rem] font-semibold text-brand-ink underline decoration-brand/30 underline-offset-4 transition-colors hover:text-brand"
+      >
+        <DownloadIcon className="size-3.5" />
+        הורדת תבנית CSV למילוי
+      </a>
       <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
         <input
           ref={inputRef}

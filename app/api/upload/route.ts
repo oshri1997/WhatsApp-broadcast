@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    guestStore.setAll(await parseGuestsFromBuffer(buffer));
+    guestStore.setAll(await parseGuestsFromBuffer(buffer, file.name.toLowerCase().endsWith('.csv')));
     return NextResponse.json({ guests: guestStore.getAll().map(withResolution) });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });

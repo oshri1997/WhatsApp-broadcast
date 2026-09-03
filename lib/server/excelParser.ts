@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { Readable } from 'node:stream';
 import type { Guest } from '@/lib/types';
 import { normalizePhone, isPlausiblePhone } from './phone';
 
@@ -39,14 +40,18 @@ function findColumnIndex(headerRow: ExcelJS.Row, candidates: string[]): number {
   return -1;
 }
 
-export async function parseGuestsFromBuffer(buffer: Buffer): Promise<ParsedGuest[]> {
+export async function parseGuestsFromBuffer(buffer: Buffer, isCsv = false): Promise<ParsedGuest[]> {
   const workbook = new ExcelJS.Workbook();
   try {
-    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+    if (isCsv) {
+      await workbook.csv.read(Readable.from(buffer));
+    } else {
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+    }
   } catch {
     // exceljs surfaces its zip-parser's English internals here; anything that
     // isn't a real workbook lands in this branch.
-    throw new Error('לא הצלחנו לקרוא את הקובץ - צריך קובץ אקסל תקין בפורמט ‎.xlsx');
+    throw new Error(isCsv ? 'לא הצלחנו לקרוא את קובץ ה־CSV' : 'לא הצלחנו לקרוא את הקובץ - צריך קובץ אקסל תקין בפורמט ‎.xlsx');
   }
   const sheet = workbook.worksheets[0];
 
