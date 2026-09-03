@@ -114,14 +114,22 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
 
 export function AppShell() {
   const [tab, setTab] = React.useState<TabValue>('guests');
+  const [scrolled, setScrolled] = React.useState(false);
   const loaded = useApp((s) => s.loaded);
   const activeTab = TABS.find((item) => item.value === tab) ?? TABS[0];
   useLiveData();
 
+  React.useEffect(() => {
+    const updateScrollState = () => setScrolled(window.scrollY > 12);
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollState);
+  }, []);
+
   return (
     <div className="home-shell mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
       <a className="skip-link" href="#workspace">דילוג לאזור העבודה</a>
-      <header className="app-nav sticky top-0 z-20">
+      <header className={`app-nav sticky top-0 z-20 ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="nav-brand">
           <span aria-hidden className="nav-brand__mark"><span /></span>
           <div className="min-w-0">

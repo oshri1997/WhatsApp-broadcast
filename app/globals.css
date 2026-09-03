@@ -159,6 +159,16 @@
     padding: 0.65rem 0 0.35rem;
     background: transparent;
     backdrop-filter: none;
+    transition: background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  /* At rest the chrome blends into the hero. Once content passes beneath it,
+     a quiet opaque layer preserves legibility without looking like a card. */
+  .app-nav.is-scrolled {
+    border-bottom: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    background: color-mix(in oklab, var(--bg) 96%, var(--surface));
+    box-shadow: 0 10px 20px -22px hsl(var(--shadow-color) / 0.8);
+    backdrop-filter: blur(16px);
   }
 
   .app-nav::before {
