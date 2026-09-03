@@ -27,11 +27,3 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
 ];
 
 export const REMINDER_TEMPLATE = MESSAGE_TEMPLATES[4];
-
-/**
- * Sent as its own follow-up message right after the invitation, not appended
- * to it - guests can answer freely in their own words (the RSVP parser
- * already understands many phrasings), these are just the suggested ones.
- */
-export const RSVP_QUESTION_MESSAGE =
-  'מגיעים לחתונה? 💍\nאפשר לענות כאן:\n\n✅ כן\n❌ לא\n❓ אולי';

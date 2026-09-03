@@ -5,7 +5,7 @@ import { Select } from '@base-ui/react/select';
 import { toast } from 'sonner';
 import type { InvitationMediaView, ResolvedGuest } from '@/lib/types';
 import { api, apiJson, hasMultipleAccounts, run, useApp } from '@/lib/store';
-import { MESSAGE_TEMPLATES, RSVP_QUESTION_MESSAGE } from '@/lib/templates';
+import { MESSAGE_TEMPLATES } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Hint, Label, Textarea } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
@@ -144,7 +144,6 @@ export function ComposePanel() {
   const setJob = useApp((s) => s.setJob);
   const confirm = useConfirm();
   const [sending, setSending] = React.useState(false);
-  const [sendRsvpQuestion, setSendRsvpQuestion] = React.useState(false);
 
   const anyReady = accounts.some((a) => a.status === 'READY');
   const selectedGuests = guests.filter((g) => selected.has(g.id));
@@ -177,7 +176,6 @@ export function ComposePanel() {
       apiJson<{ jobId: string }>('/api/send', 'POST', {
         guestIds: [...selected],
         message,
-        sendRsvpQuestion,
       })
     );
     setSending(false);
@@ -220,21 +218,6 @@ export function ComposePanel() {
           <MediaUpload />
         </div>
 
-        <label className="flex cursor-pointer items-start gap-2.5">
-          <input
-            type="checkbox"
-            checked={sendRsvpQuestion}
-            onChange={(e) => setSendRsvpQuestion(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
-          />
-          <span className="text-sm">
-            לשלוח גם הודעת המשך נפרדת עם שאלת אישור הגעה (כן / לא / אולי)
-            <Hint className="mt-0.5">
-              כשזה כבוי נשלחת רק הזמנת החתונה. אפשר גם לשלוח את שאלת האישור בנפרד בהמשך.
-            </Hint>
-          </span>
-        </label>
-
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={send} disabled={sending || selected.size === 0}>
             <SendIcon className="size-4" />
@@ -263,16 +246,10 @@ export function ComposePanel() {
             )}
             {preview}
           </div>
-          {sendRsvpQuestion && (
-            <div className="ms-auto w-fit max-w-full rounded-2xl rounded-tl-md bg-[oklch(0.95_0.05_145)] px-3 py-2 text-[0.9rem] leading-relaxed whitespace-pre-wrap shadow-sm dark:bg-[oklch(0.38_0.05_150)]">
-              {RSVP_QUESTION_MESSAGE}
-            </div>
-          )}
         </div>
         <Hint className="mt-2">
           {previewGuest
-            ? `לדוגמה עבור ${previewGuest.name}` +
-              (sendRsvpQuestion ? ' - שתי הודעות נפרדות, ההזמנה ואז שאלת אישור ההגעה' : '')
+            ? `לדוגמה עבור ${previewGuest.name}`
             : 'הוסיפו מוזמנים כדי לראות איך זה נראה עם שם אמיתי'}
         </Hint>
       </div>

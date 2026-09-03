@@ -9,10 +9,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const { guestIds, message, sendRsvpQuestion } = (await request.json().catch(() => ({}))) as {
+  const { guestIds, message } = (await request.json().catch(() => ({}))) as {
     guestIds?: number[];
     message?: string;
-    sendRsvpQuestion?: boolean;
   };
 
   if (!accounts.list().some((a) => a.status === 'READY')) {
@@ -42,6 +41,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const jobId = sendJobs.createJob(selected, message, media.readForSending(), !!sendRsvpQuestion);
+  const jobId = sendJobs.createJob(selected, message, media.readForSending());
   return NextResponse.json({ jobId });
 }

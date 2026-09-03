@@ -1,5 +1,4 @@
 import type { Guest, SendJob } from '@/lib/types';
-import { RSVP_QUESTION_MESSAGE } from '@/lib/templates';
 import * as accounts from './accounts';
 import * as guestStore from './guestStore';
 import type { OutgoingMedia } from './whatsappClient';
@@ -16,9 +15,6 @@ const MIN_DELAY_MS = 4000;
 const MAX_DELAY_MS = 9000;
 const LONG_PAUSE_EVERY = 25;
 const LONG_PAUSE_MS = 30000;
-// Gap between the invitation and the RSVP question that follows it, so they
-// land as two distinct bubbles instead of racing each other.
-const RSVP_FOLLOWUP_DELAY_MS = 2000;
 
 export type SendTarget = Guest & { accountId: string };
 
@@ -38,8 +34,7 @@ function sleep(ms: number) {
 export function createJob(
   guests: SendTarget[],
   messageTemplate: string,
-  media: OutgoingMedia | null,
-  sendRsvpQuestion: boolean
+  media: OutgoingMedia | null
 ): string {
   const id = String(state.nextId++);
   const job: SendJob = {
@@ -52,7 +47,7 @@ export function createJob(
   };
   state.jobs.set(id, job);
 
-  runJob(job, guests, messageTemplate, media, sendRsvpQuestion).catch((err: Error) => {
+  runJob(job, guests, messageTemplate, media).catch((err: Error) => {
     job.status = 'done';
     job.error = err.message;
   });
@@ -64,8 +59,7 @@ async function runJob(
   job: SendJob,
   guests: SendTarget[],
   messageTemplate: string,
-  media: OutgoingMedia | null,
-  sendRsvpQuestion: boolean
+  media: OutgoingMedia | null
 ) {
   for (let i = 0; i < guests.length; i++) {
     const guest = guests[i];
@@ -77,17 +71,6 @@ async function runJob(
       guestStore.update(guest.id, { invited: true });
       job.sent++;
 
-      if (sendRsvpQuestion) {
-        // The RSVP question is a separate message on purpose - if it fails,
-        // the guest still got the invitation, so don't count that as a
-        // failed send.
-        await sleep(RSVP_FOLLOWUP_DELAY_MS);
-        await accounts
-          .sendMessage(guest.accountId, guest.phone!, RSVP_QUESTION_MESSAGE)
-          .catch((err: Error) =>
-            console.error(`Failed to send RSVP question to guest ${guest.id}:`, err.message)
-          );
-      }
     } catch (err) {
       job.failed.push({
         name: guest.name,
