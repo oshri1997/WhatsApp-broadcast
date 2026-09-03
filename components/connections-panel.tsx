@@ -205,7 +205,7 @@ export function ConnectionsPanel() {
             onKeyDown={(e) => e.key === 'Enter' && addAccount()}
           />
         </div>
-        <Button variant="primary" onClick={addAccount} disabled={adding}>
+        <Button variant="primary" onClick={addAccount} disabled={adding || !newLabel.trim()}>
           <PlusIcon className="size-4" />
           הוספת חיבור וואטסאפ
         </Button>
