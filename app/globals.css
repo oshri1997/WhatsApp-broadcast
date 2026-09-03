@@ -407,8 +407,40 @@
   /* A single visual focal point gives the dashboard its character, while the
      rest of the workflow stays deliberately quiet and task-oriented. */
   .home-shell {
+    /* The dashboard gets its own wedding palette; admin screens retain the
+       calmer product palette, so operational work is never overly ornate. */
+    --brand: oklch(0.56 0.19 355);
+    --brand-hover: oklch(0.49 0.19 355);
+    --brand-ink: oklch(0.43 0.17 355);
+    --brand-soft: oklch(0.955 0.034 355);
+    --shadow-color: 345 42% 38%;
     animation: home-arrive 420ms var(--ease-snap) both;
   }
+
+  .dark .home-shell {
+    --brand: oklch(0.73 0.16 355);
+    --brand-hover: oklch(0.79 0.15 355);
+    --brand-ink: oklch(0.82 0.13 355);
+    --brand-soft: oklch(0.31 0.07 355);
+    --shadow-color: 345 35% 4%;
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 50;
+    border-radius: 0.75rem;
+    background: var(--brand);
+    padding: 0.55rem 0.8rem;
+    color: var(--on-brand);
+    font-size: 0.875rem;
+    font-weight: 700;
+    transform: translateY(-150%);
+    transition: transform 160ms var(--ease-snap);
+  }
+
+  .skip-link:focus { transform: translateY(0); }
 
   @keyframes home-arrive {
     from { opacity: 0; transform: translateY(6px); }
@@ -555,6 +587,32 @@
 
   .hero-metrics strong { margin-inline-end: 0.22rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 
+  .hero-journey {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    max-width: 32rem;
+    margin-top: 1.25rem;
+  }
+
+  .hero-journey li {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+    min-width: 0;
+    border-inline-start: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+    padding-inline-start: 0.5rem;
+    color: var(--muted);
+  }
+
+  .hero-journey li:first-child { border-inline-start: 0; padding-inline-start: 0; }
+  .hero-journey__number { flex: none; color: var(--brand-ink); font-size: 0.62rem; font-weight: 850; letter-spacing: 0.05em; }
+  .hero-journey strong, .hero-journey small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hero-journey strong { color: var(--ink); font-size: 0.7rem; font-weight: 750; }
+  .hero-journey small { margin-top: 0.06rem; color: var(--muted); font-size: 0.64rem; }
+  .hero-journey .is-complete .hero-journey__number { display: grid; width: 1rem; height: 1rem; place-items: center; border-radius: 999px; background: var(--good); color: var(--on-brand); font-size: 0; }
+  .hero-journey .is-complete .hero-journey__number::after { content: '✓'; font-size: 0.66rem; font-weight: 900; }
+
   .dashboard-hero__visual { position: relative; min-height: 22rem; overflow: hidden; }
   .hero-glow { position: absolute; top: 50%; left: 50%; width: 15rem; height: 15rem; border-radius: 999px; background: color-mix(in oklab, var(--brand) 52%, transparent); filter: blur(2px); opacity: 0.42; transform: translate(-50%, -50%); }
   .hero-orbit { position: absolute; top: 50%; left: 50%; border: 1px solid color-mix(in oklab, var(--brand) 30%, transparent); border-radius: 999px; transform: translate(-50%, -50%); }
@@ -602,6 +660,9 @@
     .hero-seal { width: 4.5rem; height: 4.5rem; }
     .hero-seal__envelope { top: 1.04rem; }
     .hero-seal small { bottom: 0.58rem; }
+    .hero-journey { gap: 0.22rem; }
+    .hero-journey li { gap: 0.25rem; padding-inline-start: 0.28rem; }
+    .hero-journey small { display: none; }
   }
 
   .dashboard-status-dot {

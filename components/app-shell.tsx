@@ -64,6 +64,11 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
   const selected = useApp((s) => s.selected.size);
   const ready = accounts.filter((account) => account.status === 'READY').length;
   const canSend = selected > 0 && ready > 0;
+  const journey = [
+    { label: 'מוזמנים', detail: guests.length ? `${guests.length} ברשימה` : 'הוסיפו רשימה', complete: guests.length > 0 },
+    { label: 'חיבור', detail: ready ? `${ready} פעילים` : 'חברו WhatsApp', complete: ready > 0 },
+    { label: 'שליחה', detail: selected ? `${selected} נבחרו` : 'בחרו נמענים', complete: canSend },
+  ];
 
   return (
     <section className="dashboard-hero" aria-labelledby="dashboard-title">
@@ -85,6 +90,14 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
           <span><strong>{selected}</strong> נבחרו</span>
           <span><strong>{ready}</strong> חיבורים</span>
         </div>
+        <ol className="hero-journey" aria-label="מסלול שליחת ההזמנה">
+          {journey.map((step, index) => (
+            <li key={step.label} className={step.complete ? 'is-complete' : ''}>
+              <span className="hero-journey__number">0{index + 1}</span>
+              <span><strong>{step.label}</strong><small>{step.detail}</small></span>
+            </li>
+          ))}
+        </ol>
       </div>
       <div className="dashboard-hero__visual" aria-hidden="true">
         <div className="hero-glow" />
@@ -107,6 +120,7 @@ export function AppShell() {
 
   return (
     <div className="home-shell mx-auto flex min-h-dvh w-full max-w-7xl flex-col gap-6 px-4 pb-32 pt-5 sm:px-6">
+      <a className="skip-link" href="#workspace">דילוג לאזור העבודה</a>
       <header className="app-nav sticky top-0 z-20 -mx-4 sm:-mx-6">
         <div className="nav-brand">
           <span aria-hidden className="nav-brand__mark"><span /></span>
@@ -130,11 +144,12 @@ export function AppShell() {
 
       <StatTiles />
 
-      <Tabs.Root
-        value={tab}
-        onValueChange={(value) => setTab(value as TabValue)}
-        className="flex flex-col gap-5"
-      >
+      <main id="workspace">
+        <Tabs.Root
+          value={tab}
+          onValueChange={(value) => setTab(value as TabValue)}
+          className="flex flex-col gap-5"
+        >
         <Tabs.List aria-label="ניווט ראשי" className="workflow-nav">
           {TABS.map((item) => (
             <Tabs.Tab
@@ -170,7 +185,8 @@ export function AppShell() {
         <Tabs.Panel value="connections" className="outline-none">
           <ConnectionsPanel />
         </Tabs.Panel>
-      </Tabs.Root>
+        </Tabs.Root>
+      </main>
 
       {!loaded && <p className="text-center text-sm text-muted">טוען…</p>}
 
