@@ -1,5 +1,3 @@
-export type RsvpStatus = 'yes' | 'no' | 'maybe';
-
 export interface Guest {
   id: number;
   name: string;
@@ -8,9 +6,6 @@ export interface Guest {
   side: string;
   valid: boolean;
   customMessage?: string | null;
-  rsvpStatus: RsvpStatus | null;
-  rsvpCount: number | null;
-  rsvpAwaitingCount: boolean;
   invited: boolean;
 }
 
@@ -54,8 +49,6 @@ export interface InvitationMediaView {
   kind: MediaKind | null;
   filename: string | null;
 }
-
-export type RsvpFilter = '' | RsvpStatus | 'pending' | 'not-invited';
 
 export interface SeatingTable {
   id: number;

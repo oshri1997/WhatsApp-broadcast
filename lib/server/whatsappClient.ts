@@ -2,12 +2,6 @@ import fs from 'node:fs';
 import qrcode from 'qrcode';
 import type { AccountStatus } from '@/lib/types';
 
-export interface IncomingMessage {
-  chatId: string;
-  phone: string;
-  body: string;
-}
-
 export interface OutgoingMedia {
   data: string; // base64
   mimetype: string;
@@ -18,7 +12,6 @@ export interface WhatsAppAccount {
   init(): void;
   getStatus(): { status: AccountStatus; qrDataUrl: string | null; phone: string | null };
   sendMessage(phone: string, text: string, media?: OutgoingMedia | null): Promise<void>;
-  sendRaw(chatId: string, text: string): Promise<void>;
   logout(): Promise<void>;
   shutdown(): Promise<void>;
 }
@@ -40,12 +33,8 @@ async function buildProxyAgent() {
 // Builds one independent WhatsApp connection over a direct WebSocket (no
 // browser involved). Each account gets its own auth folder (keyed by
 // dataPath) so multiple phone numbers can be logged in side by side, each
-// with its own QR code. `onMessage` is invoked for every message this
-// account receives (not ones it sends), used for the RSVP reply flow.
-export function createAccount(
-  dataPath: string,
-  onMessage?: (message: IncomingMessage) => void
-): WhatsAppAccount {
+// with its own QR code.
+export function createAccount(dataPath: string): WhatsAppAccount {
   const state: {
     status: AccountStatus;
     qrDataUrl: string | null;
@@ -143,40 +132,6 @@ export function createAccount(
       }
     });
 
-    if (onMessage) {
-      sock.ev.on('messages.upsert', ({ messages }: { messages: Array<Record<string, any>> }) => {
-        for (const message of messages) {
-          if (message.key.fromMe) continue;
-
-          const remoteJid: string = message.key.remoteJid || '';
-          // Only handle direct 1:1 chats - a real guest is always addressed
-          // as @s.whatsapp.net (phone-based) or @lid (WhatsApp's privacy
-          // ID). Everything else (@g.us groups, @newsletter channels,
-          // @broadcast/status) has no single phone number to match against
-          // a guest.
-          if (!/@(s\.whatsapp\.net|lid)$/.test(remoteJid)) continue;
-
-          const body: string =
-            message.message?.conversation || message.message?.extendedTextMessage?.text || '';
-          if (!body) continue;
-
-          // Baileys exposes the phone-number address directly on the
-          // message key: if the chat is LID-addressed, remoteJidAlt carries
-          // the corresponding phone JID (and vice versa) - no extra network
-          // round-trip needed to resolve it.
-          const phoneJid: string | undefined = remoteJid.endsWith('@lid')
-            ? message.key.remoteJidAlt
-            : remoteJid;
-          if (!phoneJid) {
-            console.error(`Could not resolve a phone number for ${remoteJid} - skipping.`);
-            continue;
-          }
-
-          const phone = phoneJid.replace(/@.*$/, '');
-          onMessage({ chatId: remoteJid, phone, body });
-        }
-      });
-    }
   }
 
   function init() {
@@ -228,16 +183,6 @@ export function createAccount(
     }
   }
 
-  // Replies directly to an existing chat by its own chat ID, unlike
-  // sendMessage which resolves a fresh address from a phone number - needed
-  // for RSVP replies since the original chat may be addressed by a LID.
-  async function sendRaw(chatId: string, text: string) {
-    if (!state.sock || state.status !== 'READY') {
-      throw new Error('החשבון הזה עדיין לא מחובר לוואטסאפ');
-    }
-    await state.sock.sendMessage(chatId, { text });
-  }
-
   async function logout() {
     if (state.sock) {
       await state.sock.logout().catch(() => {});
@@ -260,5 +205,5 @@ export function createAccount(
     }
   }
 
-  return { init, getStatus, sendMessage, sendRaw, logout, shutdown };
+  return { init, getStatus, sendMessage, logout, shutdown };
 }

@@ -4,12 +4,8 @@ import { DATA_DIR } from './dataDir';
 import type { Guest } from '@/lib/types';
 import { singleton } from './singleton';
 
-// Single source of truth for guest state, shared between the HTTP API and the
-// incoming-RSVP-reply handler so both see and mutate the same records.
-// Persisted to disk so a server restart doesn't lose who was already invited /
-// how they RSVP'd - without this, a restart between sending invites and guests
-// replying would silently break RSVP matching (the guest would simply no
-// longer exist in memory).
+// Single source of truth for guest state, persisted so a server restart does
+// not lose the list or which guests have already received an invitation.
 const DATA_FILE = path.join(DATA_DIR, 'guests.json');
 
 interface State {
@@ -19,11 +15,8 @@ interface State {
 
 function defaults() {
   return {
-    rsvpStatus: null,
-    rsvpCount: null,
-    rsvpAwaitingCount: false,
     invited: false,
-  } satisfies Pick<Guest, 'rsvpStatus' | 'rsvpCount' | 'rsvpAwaitingCount' | 'invited'>;
+  } satisfies Pick<Guest, 'invited'>;
 }
 
 const state = singleton<State>('guestStore', () => {

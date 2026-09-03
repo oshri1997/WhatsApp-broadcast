@@ -22,13 +22,8 @@ import { Hint, Input, Label } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
 import { PlusIcon, TrashIcon, UsersIcon } from '@/components/icons';
 
-/**
- * How many seats a guest's party occupies. A confirmed headcount wins;
- * anyone else (pending, maybe, yes-without-count) is planned as one seat
- * until they say otherwise.
- */
-function partySize(guest: ResolvedGuest): number {
-  if (guest.rsvpStatus === 'yes' && guest.rsvpCount) return guest.rsvpCount;
+/** Each guest occupies one seat in the seating chart. */
+function partySize(_guest: ResolvedGuest): number {
   return 1;
 }
 
@@ -186,8 +181,7 @@ export function SeatingPanel() {
 
   const guestById = React.useMemo(() => new Map(guests.map((g) => [g.id, g])), [guests]);
 
-  // Only people who might actually show up need a seat.
-  const seatable = React.useMemo(() => guests.filter((g) => g.rsvpStatus !== 'no'), [guests]);
+  const seatable = guests;
   const unassigned = seatable.filter((g) => seating.assignments[g.id] === undefined);
   const activeGuest = activeGuestId !== null ? (guestById.get(activeGuestId) ?? null) : null;
 
@@ -314,8 +308,7 @@ export function SeatingPanel() {
             הוספת שולחנות
           </Button>
           <Hint className="basis-full">
-            כל מוזמן תופס מקומות לפי כמות האורחים שאישר (מוזמן שאישר 3 יתפוס 3 מקומות). אפשר לשנות שם
-            לשולחן בלחיצה על השם.
+            כל מוזמן תופס מקום אחד. אפשר לשנות שם לשולחן בלחיצה על השם.
           </Hint>
         </div>
 

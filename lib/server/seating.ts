@@ -4,8 +4,7 @@ import { DATA_DIR } from './dataDir';
 import { singleton } from './singleton';
 
 // Seating chart state: the tables the organizer created plus which guest sits
-// at which table. A guest "party" (their RSVP headcount) is seated as one
-// unit - splitting a family across tables is not a thing this app does.
+// at which table. Each guest is seated as one unit.
 // Persisted like the guest list so a restart doesn't wipe the chart.
 const DATA_FILE = path.join(DATA_DIR, 'seating.json');
 

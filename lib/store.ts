@@ -6,11 +6,10 @@ import type {
   AccountView,
   InvitationMediaView,
   ResolvedGuest,
-  RsvpFilter,
   SendJob,
 } from './types';
 import { api, apiJson } from './api';
-import { isSendable, matchesRsvpFilter, matchesSearch } from './guests';
+import { isSendable, matchesSearch } from './guests';
 import { MESSAGE_TEMPLATES } from './templates';
 
 interface AppState {
@@ -19,7 +18,6 @@ interface AppState {
   media: InvitationMediaView;
   selected: Set<number>;
   search: string;
-  rsvpFilter: RsvpFilter;
   message: string;
   /** While a row is open for editing, polling must not stomp on the inputs. */
   editingGuestId: number | null;
@@ -31,7 +29,6 @@ interface AppState {
   refreshMedia: () => Promise<void>;
 
   setSearch: (search: string) => void;
-  setRsvpFilter: (filter: RsvpFilter) => void;
   setMessage: (message: string) => void;
   setEditingGuestId: (id: number | null) => void;
   setMedia: (media: InvitationMediaView) => void;
@@ -40,7 +37,6 @@ interface AppState {
   toggleGuest: (id: number, selected: boolean) => void;
   selectVisible: () => void;
   clearSelection: () => void;
-  selectPendingReplies: () => number;
 
   replaceGuest: (guest: ResolvedGuest) => void;
   addGuest: (guest: ResolvedGuest) => void;
@@ -58,7 +54,6 @@ export const useApp = create<AppState>((set, get) => ({
   media: { url: null, kind: null, filename: null },
   selected: new Set<number>(),
   search: '',
-  rsvpFilter: '',
   message: MESSAGE_TEMPLATES[0].text,
   editingGuestId: null,
   job: null,
@@ -109,7 +104,6 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   setSearch: (search) => set({ search }),
-  setRsvpFilter: (rsvpFilter) => set({ rsvpFilter }),
   setMessage: (message) => set({ message }),
   setEditingGuestId: (editingGuestId) => set({ editingGuestId }),
   setMedia: (media) => set({ media }),
@@ -123,8 +117,7 @@ export const useApp = create<AppState>((set, get) => ({
       return { selected: next };
     }),
 
-  // Selects everyone currently matching the search/RSVP filter, not the whole
-  // list — so "select all" while filtered does what it looks like it does.
+  // Select everyone currently matching the search, not the whole list.
   selectVisible: () =>
     set((state) => {
       const multiple = hasMultipleAccounts(state.accounts);
@@ -132,8 +125,7 @@ export const useApp = create<AppState>((set, get) => ({
       for (const guest of state.guests) {
         if (
           isSendable(guest, multiple) &&
-          matchesSearch(guest, state.search) &&
-          matchesRsvpFilter(guest, state.rsvpFilter)
+          matchesSearch(guest, state.search)
         ) {
           next.add(guest.id);
         }
@@ -142,16 +134,6 @@ export const useApp = create<AppState>((set, get) => ({
     }),
 
   clearSelection: () => set({ selected: new Set<number>() }),
-
-  selectPendingReplies: () => {
-    const state = get();
-    const multiple = hasMultipleAccounts(state.accounts);
-    const pending = state.guests.filter(
-      (g) => g.invited && !g.rsvpStatus && isSendable(g, multiple)
-    );
-    set({ selected: new Set(pending.map((g) => g.id)), rsvpFilter: 'pending' });
-    return pending.length;
-  },
 
   replaceGuest: (guest) =>
     set((state) => ({

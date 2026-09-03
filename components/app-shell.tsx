@@ -29,9 +29,7 @@ function useLiveData() {
     refreshAccounts().then(() => refreshGuests({ resetSelection: true }));
     refreshMedia();
 
-    // RSVP replies arrive over WhatsApp, not through this UI, so the list has
-    // to poll to stay honest. Connection status changes faster (QR codes
-    // expire), hence the tighter interval.
+    // Keep the guest list and QR connection status current while the app is open.
     const guestsTimer = setInterval(() => refreshGuests(), 4000);
     const accountsTimer = setInterval(() => refreshAccounts(), 2500);
 
@@ -76,7 +74,7 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
         <p className="dashboard-hero__eyebrow"><span /> שולחים הזמנות, ברגע הנכון</p>
         <h2 id="dashboard-title">ההזמנה שלכם<br /><em>כבר בדרך.</em></h2>
         <p className="dashboard-hero__description">
-          מרכז אחד לרשימת המוזמנים, הודעה אישית ואישורי הגעה — בלי לעבור בין גיליונות וצ׳אטים.
+          מרכז אחד לרשימת המוזמנים, הודעה אישית ושליחה מסודרת — בלי לעבור בין גיליונות וצ׳אטים.
         </p>
         <div className="dashboard-hero__actions">
           <button type="button" className="hero-primary" onClick={canSend ? onOpenCompose : onOpenGuests}>
@@ -104,7 +102,7 @@ function DashboardHero({ onOpenGuests, onOpenCompose }: { onOpenGuests: () => vo
         <div className="hero-orbit hero-orbit--outer" />
         <div className="hero-orbit hero-orbit--inner" />
         <div className="hero-chat hero-chat--one"><span>מזל טוב! נשמח לחגוג איתכם</span><time>19:48</time></div>
-        <div className="hero-chat hero-chat--two"><span>בעזרת השם, מגיעים</span><time>19:51 ✓✓</time></div>
+        <div className="hero-chat hero-chat--two"><span>בעזרת השם, נתראה בשמחה</span><time>19:51 ✓✓</time></div>
         <div className="hero-seal"><span className="hero-seal__envelope" /><small>2026</small></div>
         <div className="hero-spark hero-spark--one" /><div className="hero-spark hero-spark--two" />
       </div>

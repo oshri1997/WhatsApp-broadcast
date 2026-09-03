@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { AccountView } from '@/lib/types';
 import { createAccount, type OutgoingMedia, type WhatsAppAccount } from './whatsappClient';
-import * as rsvp from './rsvp';
 import { singleton } from './singleton';
 import { DATA_DIR } from './dataDir';
 
@@ -44,11 +43,7 @@ function persist(state: State) {
 const state = singleton<State>('accounts', () => ({ accounts: new Map(), nextId: 1 }));
 
 function spawn(id: string, label: string): Account {
-  const wa = createAccount(path.join(DATA_DIR, `.baileys_auth_${id}`), ({ chatId, phone, body }) => {
-    rsvp.handleIncomingMessage(chatId, phone, body, wa.sendRaw).catch((err: Error) => {
-      console.error(`RSVP handling failed for account ${id}:`, err.message);
-    });
-  });
+  const wa = createAccount(path.join(DATA_DIR, `.baileys_auth_${id}`));
   const account: Account = { id, label, wa };
   state.accounts.set(id, account);
   wa.init();

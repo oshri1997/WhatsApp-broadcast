@@ -11,7 +11,7 @@ const heebo = Heebo({
 
 export const metadata: Metadata = {
   title: 'הזמנות חתונה בוואטסאפ',
-  description: 'שליחת הזמנות חתונה בוואטסאפ ומעקב אישורי הגעה, מהמחשב שלכם.',
+  description: 'שליחת הזמנות חתונה בוואטסאפ, מהמחשב שלכם.',
 };
 
 export const viewport: Viewport = {

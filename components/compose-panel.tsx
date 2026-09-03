@@ -166,7 +166,7 @@ export function ComposePanel() {
 
     const ok = await confirm({
       title: `לשלוח את ההזמנה ל-${selected.size} מוזמנים?`,
-      description: 'ההודעות יישלחו כברודקאסט, ללא בקשה לאישור הגעה. ההודעות נשלחות אחת אחרי השנייה עם השהיה אקראית ביניהן.',
+      description: 'ההודעות יישלחו כברודקאסט, אחת אחרי השנייה עם השהיה אקראית ביניהן.',
       confirmLabel: 'שליחה',
     });
     if (!ok) return;

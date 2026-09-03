@@ -1,7 +1,7 @@
 {
   "name": "wedding-whatsapp-broadcast",
   "version": "1.0.0",
-  "description": "שליחת הזמנות חתונה בוואטסאפ ומעקב אישורי הגעה - Next.js",
+  "description": "שליחת הזמנות חתונה בוואטסאפ - Next.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
