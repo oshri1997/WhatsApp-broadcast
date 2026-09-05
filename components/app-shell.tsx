@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Tabs } from '@base-ui/react/tabs';
 import { useApp } from '@/lib/store';
 import { StatTiles } from '@/components/stat-tiles';
@@ -27,16 +28,22 @@ function useLiveData() {
   React.useEffect(() => {
     // Accounts first: guest -> account resolution depends on how many are
     // connected, so loading guests before them would flash bogus warnings.
-    refreshAccounts().then(() => refreshGuests({ resetSelection: true }));
-    refreshMedia();
+    const refreshVisibleData = () => {
+      if (document.visibilityState === 'hidden') return;
+      void refreshAccounts().then(() => refreshGuests({ resetSelection: true }));
+      void refreshMedia();
+    };
+    refreshVisibleData();
 
     // Keep the guest list and QR connection status current while the app is open.
-    const guestsTimer = setInterval(() => refreshGuests(), 4000);
-    const accountsTimer = setInterval(() => refreshAccounts(), 2500);
+    const guestsTimer = setInterval(() => { if (document.visibilityState === 'visible') void refreshGuests(); }, 8000);
+    const accountsTimer = setInterval(() => { if (document.visibilityState === 'visible') void refreshAccounts(); }, 4000);
+    document.addEventListener('visibilitychange', refreshVisibleData);
 
     return () => {
       clearInterval(guestsTimer);
       clearInterval(accountsTimer);
+      document.removeEventListener('visibilitychange', refreshVisibleData);
     };
   }, [refreshGuests, refreshAccounts, refreshMedia]);
 }
@@ -179,7 +186,7 @@ export function AppShell({ username }: { username: string }) {
           <span className="nav-actions__divider" aria-hidden="true" />
           <ThemeToggle />
           <a href="/api/workspace/backup" className="text-xs font-semibold text-muted hover:text-foreground">גיבוי</a>
-          <a href="/account/password" className="text-xs font-semibold text-muted hover:text-foreground">סיסמה</a>
+          <Link href="/account/password" className="text-xs font-semibold text-muted hover:text-foreground">סיסמה</Link>
           <button
             type="button"
             className="text-xs font-semibold text-muted hover:text-foreground"
