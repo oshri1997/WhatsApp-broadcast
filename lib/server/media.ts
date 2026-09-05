@@ -1,15 +1,8 @@
 import fs from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
-import { DATA_DIR } from './dataDir';
+import { workspaceDataDir, writeJsonAtomic } from './dataDir';
 import type { MediaKind } from '@/lib/types';
-
-// The invitation image/video used to live in memory as a base64 string that
-// was also handed to the browser as a giant data: URL. Writing it to disk
-// instead means it survives a server restart and the UI can preview it through
-// a normal cacheable URL rather than inlining megabytes into the HTML.
-const DIR = DATA_DIR;
-const BIN_FILE = path.join(DIR, 'invitation-media.bin');
-const META_FILE = path.join(DIR, 'invitation-media.json');
 
 export interface MediaMeta {
   mimetype: string;
@@ -19,33 +12,59 @@ export interface MediaMeta {
   version: number;
 }
 
-export function getMeta(): MediaMeta | null {
+function files(workspaceId: string) {
+  const directory = workspaceDataDir(workspaceId);
+  return {
+    directory,
+    binary: path.join(directory, 'invitation-media.bin'),
+    meta: path.join(directory, 'invitation-media.json'),
+  };
+}
+
+export function getMeta(workspaceId: string): MediaMeta | null {
+  const { binary, meta } = files(workspaceId);
   try {
-    const meta = JSON.parse(fs.readFileSync(META_FILE, 'utf8')) as MediaMeta;
-    if (!fs.existsSync(BIN_FILE)) return null;
-    return meta;
+    const value = JSON.parse(fs.readFileSync(meta, 'utf8')) as MediaMeta;
+    if (!fs.existsSync(binary)) return null;
+    return value;
   } catch {
     return null;
   }
 }
 
-export function save(buffer: Buffer, mimetype: string, filename: string, kind: MediaKind): MediaMeta {
-  fs.mkdirSync(DIR, { recursive: true });
-  fs.writeFileSync(BIN_FILE, buffer);
-  const meta: MediaMeta = { mimetype, filename, kind, version: Date.now() };
-  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2));
-  return meta;
+export function save(
+  workspaceId: string,
+  buffer: Buffer,
+  mimetype: string,
+  filename: string,
+  kind: MediaKind
+): MediaMeta {
+  const { directory, binary, meta } = files(workspaceId);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporary = path.join(directory, `.invitation-media.${process.pid}.${randomUUID()}.tmp`);
+  try {
+    fs.writeFileSync(temporary, buffer, { mode: 0o600 });
+    fs.renameSync(temporary, binary);
+  } catch (error) {
+    fs.rmSync(temporary, { force: true });
+    throw error;
+  }
+
+  const value: MediaMeta = { mimetype, filename, kind, version: Date.now() };
+  writeJsonAtomic(meta, value);
+  return value;
 }
 
-export function read(): { buffer: Buffer; meta: MediaMeta } | null {
-  const meta = getMeta();
+export function read(workspaceId: string): { buffer: Buffer; meta: MediaMeta } | null {
+  const { binary } = files(workspaceId);
+  const meta = getMeta(workspaceId);
   if (!meta) return null;
-  return { buffer: fs.readFileSync(BIN_FILE), meta };
+  return { buffer: fs.readFileSync(binary), meta };
 }
 
 /** The base64 payload the WhatsApp client's sendMessage() expects. */
-export function readForSending(): { data: string; mimetype: string; filename: string } | null {
-  const file = read();
+export function readForSending(workspaceId: string): { data: string; mimetype: string; filename: string } | null {
+  const file = read(workspaceId);
   if (!file) return null;
   return {
     data: file.buffer.toString('base64'),
@@ -54,7 +73,8 @@ export function readForSending(): { data: string; mimetype: string; filename: st
   };
 }
 
-export function clear(): void {
-  fs.rmSync(BIN_FILE, { force: true });
-  fs.rmSync(META_FILE, { force: true });
+export function clear(workspaceId: string): void {
+  const { binary, meta } = files(workspaceId);
+  fs.rmSync(binary, { force: true });
+  fs.rmSync(meta, { force: true });
 }

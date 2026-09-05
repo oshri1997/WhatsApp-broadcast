@@ -9,6 +9,7 @@ import { GuestsPanel } from '@/components/guests-panel';
 import { ComposePanel } from '@/components/compose-panel';
 import { SendProgress } from '@/components/send-progress';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { BetaNotice } from '@/components/beta-notice';
 
 type TabValue = 'guests' | 'connections' | 'compose';
 
@@ -177,6 +178,7 @@ export function AppShell({ username }: { username: string }) {
           <ConnectionPill />
           <span className="nav-actions__divider" aria-hidden="true" />
           <ThemeToggle />
+          <a href="/api/workspace/backup" className="text-xs font-semibold text-muted hover:text-foreground">גיבוי</a>
           <a href="/account/password" className="text-xs font-semibold text-muted hover:text-foreground">סיסמה</a>
           <button
             type="button"
@@ -188,6 +190,7 @@ export function AppShell({ username }: { username: string }) {
         </nav>
       </header>
 
+      <BetaNotice username={username} />
       <DashboardHero />
 
       <StatTiles />

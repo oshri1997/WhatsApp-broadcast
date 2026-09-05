@@ -1,18 +1,21 @@
 import { NextResponse } from 'next/server';
 import * as seating from '@/lib/server/seating';
 import * as guestStore from '@/lib/server/guestStore';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const workspaceId = await requireWorkspaceId();
   // Self-heal: if guests were deleted or the list was re-uploaded, their
   // seat assignments are meaningless - drop them before answering.
-  seating.pruneAssignments(new Set(guestStore.getAll().map((g) => g.id)));
-  return NextResponse.json(seating.get());
+  seating.pruneAssignments(workspaceId, new Set(guestStore.getAll(workspaceId).map((g) => g.id)));
+  return NextResponse.json(seating.get(workspaceId));
 }
 
 export async function POST(request: Request) {
+  const workspaceId = await requireWorkspaceId();
   const { count, capacity, name } = (await request.json().catch(() => ({}))) as {
     count?: number;
     capacity?: number;
@@ -29,6 +32,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'מספר המקומות בשולחן חייב להיות בין 1 ל-100' }, { status: 400 });
   }
 
-  seating.addTables(tableCount, tableCapacity, name);
-  return NextResponse.json(seating.get());
+  seating.addTables(workspaceId, tableCount, tableCapacity, name);
+  return NextResponse.json(seating.get(workspaceId));
 }

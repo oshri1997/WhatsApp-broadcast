@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as guestStore from '@/lib/server/guestStore';
 import { withResolution } from '@/lib/server/resolve';
 import { parseGuestsFromBuffer } from '@/lib/server/excelParser';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic';
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
+  const workspaceId = await requireWorkspaceId();
   const formData = await request.formData().catch(() => null);
   const file = formData?.get('file');
 
@@ -21,8 +23,8 @@ export async function POST(request: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    guestStore.setAll(await parseGuestsFromBuffer(buffer, file.name.toLowerCase().endsWith('.csv')));
-    return NextResponse.json({ guests: guestStore.getAll().map(withResolution) });
+    guestStore.setAll(workspaceId, await parseGuestsFromBuffer(buffer, file.name.toLowerCase().endsWith('.csv')));
+    return NextResponse.json({ guests: guestStore.getAll(workspaceId).map((guest) => withResolution(workspaceId, guest)) });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });
   }

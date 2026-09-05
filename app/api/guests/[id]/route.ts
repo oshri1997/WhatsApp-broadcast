@@ -3,6 +3,7 @@ import type { Guest } from '@/lib/types';
 import * as guestStore from '@/lib/server/guestStore';
 import { withResolution } from '@/lib/server/resolve';
 import { normalizePhone, isPlausiblePhone } from '@/lib/server/phone';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,8 +11,9 @@ export const dynamic = 'force-dynamic';
 type Context = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Context) {
+  const workspaceId = await requireWorkspaceId();
   const id = Number((await params).id);
-  const guest = guestStore.findById(id);
+  const guest = guestStore.findById(workspaceId, id);
   if (!guest) {
     return NextResponse.json({ error: 'מוזמן לא נמצא' }, { status: 404 });
   }
@@ -41,13 +43,14 @@ export async function PATCH(request: Request, { params }: Context) {
     patch.customMessage = customMessage.trim() ? customMessage : null;
   }
 
-  const updated = guestStore.update(id, patch)!;
-  return NextResponse.json({ guest: withResolution(updated) });
+  const updated = guestStore.update(workspaceId, id, patch)!;
+  return NextResponse.json({ guest: withResolution(workspaceId, updated) });
 }
 
 export async function DELETE(_request: Request, { params }: Context) {
+  const workspaceId = await requireWorkspaceId();
   const id = Number((await params).id);
-  if (!guestStore.remove(id)) {
+  if (!guestStore.remove(workspaceId, id)) {
     return NextResponse.json({ error: 'מוזמן לא נמצא' }, { status: 404 });
   }
   return NextResponse.json({ ok: true });

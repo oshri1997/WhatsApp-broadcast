@@ -3,6 +3,7 @@ export type Role = 'admin' | 'user';
 export interface Session {
   username: string;
   role: Role;
+  issuedAt: number;
   expiresAt: number;
 }
 
@@ -27,7 +28,8 @@ async function signature(payload: string) {
 }
 
 export async function createSession(username: string, role: Role): Promise<string> {
-  const payload = encode(JSON.stringify({ username, role, expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 14 }));
+  const issuedAt = Date.now();
+  const payload = encode(JSON.stringify({ username, role, issuedAt, expiresAt: issuedAt + 1000 * 60 * 60 * 24 * 14 }));
   return `${payload}.${await signature(payload)}`;
 }
 
@@ -42,7 +44,7 @@ export async function readSession(token?: string): Promise<Session | null> {
   if (mismatch !== 0) return null;
   try {
     const session = JSON.parse(decode(payload)) as Session;
-    return session.expiresAt > Date.now() && (session.role === 'admin' || session.role === 'user') ? session : null;
+    return session.issuedAt > 0 && session.expiresAt > Date.now() && (session.role === 'admin' || session.role === 'user') ? session : null;
   } catch {
     return null;
   }

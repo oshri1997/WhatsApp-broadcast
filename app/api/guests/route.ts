@@ -2,15 +2,18 @@ import { NextResponse } from 'next/server';
 import * as guestStore from '@/lib/server/guestStore';
 import { withResolution } from '@/lib/server/resolve';
 import { normalizePhone, isPlausiblePhone } from '@/lib/server/phone';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({ guests: guestStore.getAll().map(withResolution) });
+  const workspaceId = await requireWorkspaceId();
+  return NextResponse.json({ guests: guestStore.getAll(workspaceId).map((guest) => withResolution(workspaceId, guest)) });
 }
 
 export async function POST(request: Request) {
+  const workspaceId = await requireWorkspaceId();
   const { name, phone, side } = (await request.json().catch(() => ({}))) as {
     name?: string;
     phone?: string;
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   const normalized = normalizePhone(phone);
-  const guest = guestStore.add({
+  const guest = guestStore.add(workspaceId, {
     name: name.trim(),
     phone: normalized,
     phoneRaw: phone.trim(),
@@ -33,11 +36,11 @@ export async function POST(request: Request) {
     valid: isPlausiblePhone(normalized),
   });
 
-  return NextResponse.json({ guest: withResolution(guest) });
+  return NextResponse.json({ guest: withResolution(workspaceId, guest) });
 }
 
 /** Clears the whole list - the UI only reaches this behind a confirmation. */
 export async function DELETE() {
-  guestStore.clear();
+  guestStore.clear(await requireWorkspaceId());
   return NextResponse.json({ ok: true });
 }

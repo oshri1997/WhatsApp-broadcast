@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { InvitationMediaView } from '@/lib/types';
 import * as media from '@/lib/server/media';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,10 +18,11 @@ function toView(meta: media.MediaMeta | null): InvitationMediaView {
 }
 
 export async function GET() {
-  return NextResponse.json(toView(media.getMeta()));
+  return NextResponse.json(toView(media.getMeta(await requireWorkspaceId())));
 }
 
 export async function POST(request: Request) {
+  const workspaceId = await requireWorkspaceId();
   const formData = await request.formData().catch(() => null);
   const file = formData?.get('media');
 
@@ -38,12 +40,12 @@ export async function POST(request: Request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const meta = media.save(buffer, file.type, file.name, isVideo ? 'video' : 'image');
+  const meta = media.save(workspaceId, buffer, file.type, file.name, isVideo ? 'video' : 'image');
 
   return NextResponse.json(toView(meta));
 }
 
 export async function DELETE() {
-  media.clear();
+  media.clear(await requireWorkspaceId());
   return NextResponse.json({ ok: true });
 }

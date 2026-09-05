@@ -1,12 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { DATA_DIR } from './dataDir';
 import { singleton } from './singleton';
-
-// Seating chart state: the tables the organizer created plus which guest sits
-// at which table. Each guest is seated as one unit.
-// Persisted like the guest list so a restart doesn't wipe the chart.
-const DATA_FILE = path.join(DATA_DIR, 'seating.json');
+import { workspaceDataDir, writeJsonAtomic } from './dataDir';
 
 export interface SeatingTable {
   id: number;
@@ -25,42 +20,52 @@ function emptyState(): State {
   return { tables: [], assignments: {}, nextTableId: 1 };
 }
 
-const state = singleton<State>('seating', () => {
+const states = singleton<Map<string, State>>('seating-workspaces', () => new Map());
+
+function dataFile(workspaceId: string): string {
+  return path.join(workspaceDataDir(workspaceId), 'seating.json');
+}
+
+function stateFor(workspaceId: string): State {
+  const existing = states.get(workspaceId);
+  if (existing) return existing;
+
+  let state: State;
   try {
-    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) as Partial<State>;
+    const parsed = JSON.parse(fs.readFileSync(dataFile(workspaceId), 'utf8')) as Partial<State>;
     const tables = Array.isArray(parsed.tables) ? parsed.tables : [];
-    return {
+    state = {
       tables,
       assignments: parsed.assignments && typeof parsed.assignments === 'object' ? parsed.assignments : {},
-      nextTableId: tables.reduce((max, t) => Math.max(max, t.id), 0) + 1,
+      nextTableId: tables.reduce((max, table) => Math.max(max, table.id), 0) + 1,
     };
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      console.error('Failed to load seating chart, starting empty:', (err as Error).message);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.error('Failed to load seating chart, starting empty:', (error as Error).message);
     }
-    return emptyState();
+    state = emptyState();
   }
-});
+  states.set(workspaceId, state);
+  return state;
+}
 
-function save() {
+function save(workspaceId: string, state: State): void {
   try {
-    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-    fs.writeFileSync(
-      DATA_FILE,
-      JSON.stringify({ tables: state.tables, assignments: state.assignments }, null, 2)
-    );
-  } catch (err) {
-    console.error('Failed to save seating chart:', (err as Error).message);
+    writeJsonAtomic(dataFile(workspaceId), { tables: state.tables, assignments: state.assignments });
+  } catch (error) {
+    console.error('Failed to save seating chart:', (error as Error).message);
   }
 }
 
-export function get(): { tables: SeatingTable[]; assignments: Record<number, number> } {
+export function get(workspaceId: string): { tables: SeatingTable[]; assignments: Record<number, number> } {
+  const state = stateFor(workspaceId);
   return { tables: state.tables, assignments: state.assignments };
 }
 
-export function addTables(count: number, capacity: number, baseName?: string): SeatingTable[] {
+export function addTables(workspaceId: string, count: number, capacity: number, baseName?: string): SeatingTable[] {
+  const state = stateFor(workspaceId);
   const added: SeatingTable[] = [];
-  for (let i = 0; i < count; i++) {
+  for (let index = 0; index < count; index++) {
     const id = state.nextTableId++;
     added.push({
       id,
@@ -69,50 +74,54 @@ export function addTables(count: number, capacity: number, baseName?: string): S
     });
   }
   state.tables.push(...added);
-  save();
+  save(workspaceId, state);
   return added;
 }
 
 export function updateTable(
+  workspaceId: string,
   id: number,
   patch: Partial<Pick<SeatingTable, 'name' | 'capacity'>>
 ): SeatingTable | null {
-  const table = state.tables.find((t) => t.id === id);
+  const state = stateFor(workspaceId);
+  const table = state.tables.find((item) => item.id === id);
   if (!table) return null;
   if (patch.name !== undefined && patch.name.trim()) table.name = patch.name.trim();
   if (patch.capacity !== undefined && patch.capacity > 0) table.capacity = Math.floor(patch.capacity);
-  save();
+  save(workspaceId, state);
   return table;
 }
 
-export function removeTable(id: number): boolean {
-  const idx = state.tables.findIndex((t) => t.id === id);
-  if (idx === -1) return false;
-  state.tables.splice(idx, 1);
-  // Guests seated there go back to the unassigned pool.
+export function removeTable(workspaceId: string, id: number): boolean {
+  const state = stateFor(workspaceId);
+  const index = state.tables.findIndex((table) => table.id === id);
+  if (index === -1) return false;
+  state.tables.splice(index, 1);
   for (const [guestId, tableId] of Object.entries(state.assignments)) {
     if (tableId === id) delete state.assignments[Number(guestId)];
   }
-  save();
+  save(workspaceId, state);
   return true;
 }
 
 /** tableId null moves the guest back to the unassigned pool. */
-export function assign(guestId: number, tableId: number | null): void {
+export function assign(workspaceId: string, guestId: number, tableId: number | null): void {
+  const state = stateFor(workspaceId);
   if (tableId === null) {
     delete state.assignments[guestId];
   } else {
     state.assignments[guestId] = tableId;
   }
-  save();
+  save(workspaceId, state);
 }
 
-export function tableExists(tableId: number): boolean {
-  return state.tables.some((t) => t.id === tableId);
+export function tableExists(workspaceId: string, tableId: number): boolean {
+  return stateFor(workspaceId).tables.some((table) => table.id === tableId);
 }
 
 /** Drop assignments for guests that no longer exist (deleted, list re-uploaded). */
-export function pruneAssignments(validGuestIds: Set<number>): void {
+export function pruneAssignments(workspaceId: string, validGuestIds: Set<number>): void {
+  const state = stateFor(workspaceId);
   let changed = false;
   for (const guestId of Object.keys(state.assignments)) {
     if (!validGuestIds.has(Number(guestId))) {
@@ -120,5 +129,5 @@ export function pruneAssignments(validGuestIds: Set<number>): void {
       changed = true;
     }
   }
-  if (changed) save();
+  if (changed) save(workspaceId, state);
 }

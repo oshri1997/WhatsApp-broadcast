@@ -4,17 +4,19 @@ import * as guestStore from '@/lib/server/guestStore';
 import * as media from '@/lib/server/media';
 import * as sendJobs from '@/lib/server/sendJobs';
 import { resolveAccount } from '@/lib/server/resolve';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const workspaceId = await requireWorkspaceId();
   const { guestIds, message } = (await request.json().catch(() => ({}))) as {
     guestIds?: number[];
     message?: string;
   };
 
-  if (!accounts.list().some((a) => a.status === 'READY')) {
+  if (!accounts.list(workspaceId).some((a) => a.status === 'READY')) {
     return NextResponse.json({ error: 'אין אף חשבון וואטסאפ מחובר' }, { status: 400 });
   }
   if (!Array.isArray(guestIds) || guestIds.length === 0) {
@@ -26,9 +28,9 @@ export async function POST(request: Request) {
 
   const idSet = new Set(guestIds);
   const selected = guestStore
-    .getAll()
+    .getAll(workspaceId)
     .filter((g) => idSet.has(g.id) && g.valid)
-    .map((g) => ({ ...g, accountId: resolveAccount(g)?.id ?? null }))
+    .map((g) => ({ ...g, accountId: resolveAccount(workspaceId, g)?.id ?? null }))
     .filter((g): g is (typeof g & { accountId: string }) => g.accountId !== null);
 
   if (selected.length === 0) {
@@ -41,6 +43,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const jobId = sendJobs.createJob(selected, message, media.readForSending());
+  const jobId = sendJobs.createJob(workspaceId, selected, message, media.readForSending(workspaceId));
   return NextResponse.json({ jobId });
 }

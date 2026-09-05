@@ -9,6 +9,8 @@ export interface UserRecord {
   salt: string;
   passwordHash: string;
   createdAt: string;
+  /** Sessions issued before this timestamp are invalid after a password reset. */
+  sessionsValidAfter?: number;
 }
 
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -30,8 +32,8 @@ function save(users: UserRecord[]) {
 
 function readAdminPassword() {
   try {
-    const value = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8')) as { salt?: string; passwordHash?: string };
-    return value.salt && value.passwordHash ? { salt: value.salt, passwordHash: value.passwordHash } : null;
+    const value = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8')) as { salt?: string; passwordHash?: string; sessionsValidAfter?: number };
+    return value.salt && value.passwordHash ? { salt: value.salt, passwordHash: value.passwordHash, sessionsValidAfter: value.sessionsValidAfter ?? 0 } : null;
   } catch {
     return null;
   }
@@ -87,6 +89,7 @@ export function create(email: string) {
     salt,
     passwordHash: passwordHash(password, salt),
     createdAt: new Date().toISOString(),
+    sessionsValidAfter: Date.now(),
   };
   users.push(record);
   save(users);
@@ -99,7 +102,7 @@ export function resetPassword(username: string) {
   if (index < 0) throw new Error('המשתמש לא נמצא');
   const password = randomPassword();
   const salt = crypto.randomBytes(16).toString('hex');
-  users[index] = { ...users[index], salt, passwordHash: passwordHash(password, salt) };
+  users[index] = { ...users[index], salt, passwordHash: passwordHash(password, salt), sessionsValidAfter: Date.now() };
   save(users);
   return { username: users[index].username, email: users[index].email, password };
 }
@@ -119,12 +122,22 @@ export function changePassword(username: string, currentPassword: string, nextPa
   const passwordHashValue = passwordHash(nextPassword, salt);
   if (username === process.env.ADMIN_USERNAME) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(ADMIN_FILE, JSON.stringify({ salt, passwordHash: passwordHashValue }));
+    fs.writeFileSync(ADMIN_FILE, JSON.stringify({ salt, passwordHash: passwordHashValue, sessionsValidAfter: Date.now() }));
     return;
   }
   const users = read();
   const index = users.findIndex((user) => user.username === username);
   if (index < 0) throw new Error('המשתמש לא נמצא');
-  users[index] = { ...users[index], salt, passwordHash: passwordHashValue };
+  users[index] = { ...users[index], salt, passwordHash: passwordHashValue, sessionsValidAfter: Date.now() };
   save(users);
+}
+
+/** Defensive API-side check used after the lightweight edge middleware check. */
+export function isSessionValid(username: string, role: 'admin' | 'user', issuedAt: number): boolean {
+  if (role === 'admin') {
+    if (username !== process.env.ADMIN_USERNAME) return false;
+    return issuedAt >= (readAdminPassword()?.sessionsValidAfter ?? 0);
+  }
+  const user = read().find((item) => item.username === username);
+  return Boolean(user && issuedAt >= (user.sessionsValidAfter ?? 0));
 }

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import * as media from '@/lib/server/media';
+import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const file = media.read();
+  const file = media.read(await requireWorkspaceId());
   if (!file) return NextResponse.json({ error: 'לא הועלה קובץ' }, { status: 404 });
 
   return new Response(new Uint8Array(file.buffer), {
