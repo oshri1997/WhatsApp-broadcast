@@ -5,7 +5,8 @@ import { list } from '@/lib/server/users';
 
 const BETA_CAPACITY = 10;
 
-type SendJobRecord = { createdAt?: string; completedAt?: string; status?: string };
+type SendJobRecord = { createdAt?: string; completedAt?: string; status?: 'running' | 'done' | 'interrupted'; sent?: number; failed?: unknown[] };
+type AccountRecord = { id?: string; label?: string };
 
 function readArray(file: string): unknown[] {
   try {
@@ -29,6 +30,43 @@ function workspaceSummary(username: string) {
     guests: guests.length,
     sends: jobs.length,
     lastActivityAt: timestamps.sort().at(-1) ?? null,
+  };
+}
+
+/** A privacy-safe, admin-only snapshot for helping a beta couple. No text,
+ * phone numbers, QR payloads, WhatsApp credentials, or invitation media are read. */
+export function getUserMonitor(username: string) {
+  const user = list().find((candidate) => candidate.username === username);
+  if (!user) return null;
+
+  const summary = workspaceSummary(username);
+  if (!summary.hasWorkspace) {
+    return {
+      user,
+      ...summary,
+      connections: 0,
+      completedJobs: 0,
+      runningJobs: 0,
+      interruptedJobs: 0,
+      sentMessages: 0,
+      failedMessages: 0,
+      hasInvitationMedia: false,
+    };
+  }
+
+  const directory = workspaceDataDir(username);
+  const jobs = readArray(path.join(directory, 'send-jobs.json')) as SendJobRecord[];
+  const connections = readArray(path.join(directory, 'accounts.json')) as AccountRecord[];
+  return {
+    user,
+    ...summary,
+    connections: connections.length,
+    completedJobs: jobs.filter((job) => job.status === 'done').length,
+    runningJobs: jobs.filter((job) => job.status === 'running').length,
+    interruptedJobs: jobs.filter((job) => job.status === 'interrupted').length,
+    sentMessages: jobs.reduce((total, job) => total + (Number.isFinite(job.sent) ? job.sent! : 0), 0),
+    failedMessages: jobs.reduce((total, job) => total + (Array.isArray(job.failed) ? job.failed.length : 0), 0),
+    hasInvitationMedia: fs.existsSync(path.join(directory, 'invitation-media.bin')),
   };
 }
 

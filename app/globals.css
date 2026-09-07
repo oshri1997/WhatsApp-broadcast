@@ -7,28 +7,30 @@
   in a component should reach for a raw hex, or dark mode drifts out of sync.
 */
 :root {
-  --bg: oklch(0.977 0.008 305);
-  --bg-glow: oklch(0.93 0.045 300);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.985 0.006 305);
-  --surface-hover: oklch(0.968 0.012 305);
-  --ink: oklch(0.235 0.03 300);
-  --muted: oklch(0.53 0.028 300);
-  --line: oklch(0.916 0.014 300);
-  --brand: oklch(0.53 0.19 295);
-  --brand-hover: oklch(0.47 0.19 295);
-  --brand-ink: oklch(0.44 0.17 295);
-  --brand-soft: oklch(0.955 0.028 300);
-  --on-brand: oklch(1 0 0);
+  /* Shared with the admin control room: a composed, high-contrast navy
+     workspace with sky as the action color and emerald only for success. */
+  --bg: #101827;
+  --bg-glow: #132b45;
+  --surface: #192134;
+  --surface-2: #111827;
+  --surface-hover: #243047;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --line: rgb(148 163 184 / 0.20);
+  --brand: #38bdf8;
+  --brand-hover: #7dd3fc;
+  --brand-ink: #7dd3fc;
+  --brand-soft: rgb(56 189 248 / 0.13);
+  --on-brand: #07111f;
 
-  --good: oklch(0.56 0.15 152);
-  --good-soft: oklch(0.955 0.04 152);
-  --warn: oklch(0.62 0.14 75);
-  --warn-soft: oklch(0.96 0.05 85);
-  --bad: oklch(0.56 0.19 22);
-  --bad-soft: oklch(0.955 0.03 22);
+  --good: #34d399;
+  --good-soft: rgb(52 211 153 / 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgb(251 191 36 / 0.14);
+  --bad: #fb7185;
+  --bad-soft: rgb(251 113 133 / 0.14);
 
-  --shadow-color: 296 40% 40%;
+  --shadow-color: 216 45% 5%;
 
   /*
     Guest list columns, shared by the header and every row so they stay in
@@ -44,28 +46,28 @@
 }
 
 .dark {
-  --bg: oklch(0.176 0.021 300);
-  --bg-glow: oklch(0.3 0.07 300);
-  --surface: oklch(0.216 0.023 300);
-  --surface-2: oklch(0.245 0.025 300);
-  --surface-hover: oklch(0.275 0.028 300);
-  --ink: oklch(0.955 0.008 300);
-  --muted: oklch(0.72 0.025 300);
-  --line: oklch(0.315 0.026 300);
-  --brand: oklch(0.72 0.16 296);
-  --brand-hover: oklch(0.78 0.15 296);
-  --brand-ink: oklch(0.8 0.13 296);
-  --brand-soft: oklch(0.3 0.06 298);
-  --on-brand: oklch(0.16 0.03 300);
+  --bg: #0b1220;
+  --bg-glow: #102944;
+  --surface: #162033;
+  --surface-2: #0e1726;
+  --surface-hover: #22314a;
+  --ink: #f8fafc;
+  --muted: #a5b4c8;
+  --line: rgb(148 163 184 / 0.22);
+  --brand: #38bdf8;
+  --brand-hover: #7dd3fc;
+  --brand-ink: #7dd3fc;
+  --brand-soft: rgb(56 189 248 / 0.14);
+  --on-brand: #07111f;
 
-  --good: oklch(0.75 0.16 152);
-  --good-soft: oklch(0.31 0.07 155);
-  --warn: oklch(0.8 0.13 82);
-  --warn-soft: oklch(0.33 0.06 80);
-  --bad: oklch(0.72 0.16 22);
-  --bad-soft: oklch(0.32 0.08 22);
+  --good: #34d399;
+  --good-soft: rgb(52 211 153 / 0.16);
+  --warn: #fbbf24;
+  --warn-soft: rgb(251 191 36 / 0.16);
+  --bad: #fb7185;
+  --bad-soft: rgb(251 113 133 / 0.16);
 
-  --shadow-color: 290 30% 4%;
+  --shadow-color: 216 45% 3%;
 }
 
 @theme inline {
@@ -326,8 +328,8 @@
     }
   }
 
-  /* The soft aurora wash behind the whole app: a lavender core with a warm
-     rose edge, so the backdrop reads as intentional rather than flat. */
+  /* A restrained sky wash adds depth without pulling attention away from
+     the workflow. It deliberately uses the same navy family as admin. */
   .aurora::before {
     content: '';
     position: fixed;
@@ -338,7 +340,7 @@
     pointer-events: none;
     background:
       radial-gradient(45% 50% at 30% 45%, color-mix(in oklab, var(--bg-glow) 70%, transparent) 0%, transparent 70%),
-      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, oklch(0.88 0.06 350) 45%, transparent) 0%, transparent 70%),
+      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, var(--brand) 16%, transparent) 0%, transparent 70%),
       radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 72%);
     opacity: 0.8;
   }
@@ -346,7 +348,7 @@
   .dark .aurora::before {
     background:
       radial-gradient(45% 50% at 30% 45%, color-mix(in oklab, var(--bg-glow) 80%, transparent) 0%, transparent 70%),
-      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, oklch(0.32 0.07 350) 55%, transparent) 0%, transparent 70%),
+      radial-gradient(50% 55% at 72% 40%, color-mix(in oklab, var(--brand) 18%, transparent) 0%, transparent 70%),
       radial-gradient(60% 55% at 50% 50%, var(--bg-glow) 0%, transparent 72%);
   }
 
@@ -556,24 +558,20 @@
   /* A single visual focal point gives the dashboard its character, while the
      rest of the workflow stays deliberately quiet and task-oriented. */
   .home-shell {
-    /* The dashboard gets its own wedding palette; admin screens retain the
-       calmer product palette, so operational work is never overly ornate. */
-    /* Ocean blue keeps the workspace calm and clear; green remains reserved
-       for a successful WhatsApp connection, never the primary CTA. */
-    --brand: oklch(0.53 0.17 252);
-    --brand-hover: oklch(0.46 0.17 252);
-    --brand-ink: oklch(0.40 0.15 252);
-    --brand-soft: oklch(0.95 0.028 252);
-    --shadow-color: 250 42% 34%;
+    --brand: #38bdf8;
+    --brand-hover: #7dd3fc;
+    --brand-ink: #7dd3fc;
+    --brand-soft: rgb(56 189 248 / 0.13);
+    --shadow-color: 216 45% 5%;
     animation: home-arrive 420ms var(--ease-snap) both;
   }
 
   .dark .home-shell {
-    --brand: oklch(0.73 0.14 252);
-    --brand-hover: oklch(0.80 0.13 252);
-    --brand-ink: oklch(0.84 0.11 252);
-    --brand-soft: oklch(0.30 0.06 252);
-    --shadow-color: 250 35% 4%;
+    --brand: #38bdf8;
+    --brand-hover: #7dd3fc;
+    --brand-ink: #7dd3fc;
+    --brand-soft: rgb(56 189 248 / 0.14);
+    --shadow-color: 216 45% 3%;
   }
 
   .skip-link {
