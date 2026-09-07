@@ -12,6 +12,8 @@ import { useConfirm } from '@/components/ui/confirm';
 import { HelpTip } from '@/components/ui/help-tip';
 import { CheckIcon, ChevronIcon, ImageIcon, SendIcon, TrashIcon } from '@/components/icons';
 
+const MAX_MEDIA_BYTES = 64 * 1024 * 1024;
+
 function TemplatePicker() {
   const message = useApp((s) => s.message);
   const setMessage = useApp((s) => s.setMessage);
@@ -76,6 +78,11 @@ function MediaUpload() {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const upload = async (file: File) => {
+    if (file.size > MAX_MEDIA_BYTES) {
+      toast.error('הקובץ גדול מדי. אפשר להעלות קובץ עד 64MB.');
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
     setUploading(true);
     const formData = new FormData();
     formData.append('media', file);
@@ -217,8 +224,8 @@ export function ComposePanel() {
             <HelpTip label="עזרה לצירוף קובץ">מצרפים קובץ אחד לכל השליחות; הוא יישלח עם הטקסט ככיתוב.</HelpTip>
           </h3>
           <Hint className="mb-3">
-            הקובץ יישלח לכולם עם ההודעה כתיאור מתחתיו. סרטונים גדולים עלולים להיכשל בשליחה — עדיף
-            לשמור על גודל סביר.
+            הקובץ יישלח לכולם עם ההודעה כתיאור מתחתיו. אפשר להעלות קובץ עד 64MB; סרטונים קטנים
+            עדיפים כדי לשמור על שליחה יציבה ב־WhatsApp.
           </Hint>
           <MediaUpload />
         </div>
