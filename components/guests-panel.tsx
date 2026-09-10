@@ -166,7 +166,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
   const selectedCount = useApp((s) => s.selected.size);
   const search = useApp((s) => s.search);
   const setSearch = useApp((s) => s.setSearch);
-  const selectVisible = useApp((s) => s.selectVisible);
+  const selectAll = useApp((s) => s.selectAll);
   const clearSelection = useApp((s) => s.clearSelection);
   const refreshGuests = useApp((s) => s.refreshGuests);
   const confirm = useConfirm();
@@ -198,12 +198,12 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
               className="ps-9"
             />
           </div>
-          <Button size="sm" variant="secondary" onClick={selectVisible}>
-            בחירת הנראים
+          <Button size="sm" variant="secondary" onClick={selectAll}>
+            סמן הכול
           </Button>
-          <HelpTip label="עזרה לבחירת הנראים">בוחר את כל המוזמנים שמופיעים כרגע לפי החיפוש.</HelpTip>
+          <HelpTip label="עזרה לסימון הכול">בוחר את כל המוזמנים התקינים שניתן לשלוח אליהם, גם אם הם לא מופיעים בחיפוש.</HelpTip>
           <Button size="sm" variant="ghost" onClick={clearSelection}>
-            ניקוי בחירה
+            הסר סימון מכולם
           </Button>
           <Button size="sm" variant="primary" onClick={onGoToCompose} disabled={selectedCount === 0}>
             לשליחת ההזמנה ({selectedCount})

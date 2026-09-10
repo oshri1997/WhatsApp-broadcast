@@ -9,7 +9,7 @@ import type {
   SendJob,
 } from './types';
 import { api, apiJson } from './api';
-import { isSendable, matchesSearch } from './guests';
+import { isSendable } from './guests';
 import { MESSAGE_TEMPLATES } from './templates';
 
 interface AppState {
@@ -35,7 +35,7 @@ interface AppState {
   setJob: (job: SendJob | null) => void;
 
   toggleGuest: (id: number, selected: boolean) => void;
-  selectVisible: () => void;
+  selectAll: () => void;
   clearSelection: () => void;
 
   replaceGuest: (guest: ResolvedGuest) => void;
@@ -117,20 +117,15 @@ export const useApp = create<AppState>((set, get) => ({
       return { selected: next };
     }),
 
-  // Select everyone currently matching the search, not the whole list.
-  selectVisible: () =>
+  // Invalid numbers and unresolved sides cannot be sent, so never select them.
+  selectAll: () =>
     set((state) => {
       const multiple = hasMultipleAccounts(state.accounts);
-      const next = new Set(state.selected);
-      for (const guest of state.guests) {
-        if (
-          isSendable(guest, multiple) &&
-          matchesSearch(guest, state.search)
-        ) {
-          next.add(guest.id);
-        }
-      }
-      return { selected: next };
+      return {
+        selected: new Set(
+          state.guests.filter((guest) => isSendable(guest, multiple)).map((guest) => guest.id)
+        ),
+      };
     }),
 
   clearSelection: () => set({ selected: new Set<number>() }),
