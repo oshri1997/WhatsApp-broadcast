@@ -1,3 +1,5 @@
+export type DeliveryStatus = 'pending' | 'sent' | 'failed';
+
 export interface Guest {
   id: number;
   name: string;
@@ -7,6 +9,10 @@ export interface Guest {
   valid: boolean;
   customMessage?: string | null;
   invited: boolean;
+  /** Outcome of the most recent attempt for this guest. */
+  deliveryStatus: DeliveryStatus;
+  deliveryError?: string | null;
+  lastSentAt?: string | null;
 }
 
 /** A guest plus the WhatsApp account its "side" resolves to, computed per request. */
@@ -27,6 +33,7 @@ export interface AccountView {
 }
 
 export interface SendFailure {
+  guestId: number;
   name: string;
   phone: string;
   reason: string;

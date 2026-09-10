@@ -42,7 +42,7 @@
     separate grids, so content-sized tracks would settle a few pixels apart and
     the columns would visibly fail to line up.
   */
-  --guest-cols: 1rem minmax(7rem, 2fr) minmax(6.5rem, 1fr) minmax(5rem, 1fr) 4.75rem;
+  --guest-cols: 1rem minmax(7rem, 2fr) minmax(6.5rem, 1fr) minmax(5rem, 1fr) minmax(8rem, 1.2fr) 4.75rem;
 }
 
 .dark {

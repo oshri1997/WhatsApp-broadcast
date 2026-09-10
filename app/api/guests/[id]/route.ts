@@ -35,6 +35,14 @@ export async function PATCH(request: Request, { params }: Context) {
     patch.phoneRaw = phone.trim();
     patch.phone = normalizePhone(phone);
     patch.valid = isPlausiblePhone(patch.phone);
+    // A corrected number needs a new attempt; the old delivery outcome no
+    // longer describes this contact.
+    if (patch.phone !== guest.phone) {
+      patch.deliveryStatus = 'pending';
+      patch.deliveryError = null;
+      patch.lastSentAt = null;
+      patch.invited = false;
+    }
   }
   if (side !== undefined) {
     patch.side = side.trim();

@@ -12,6 +12,14 @@ import { Input, Label, Textarea } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
 import { PencilIcon, TrashIcon } from '@/components/icons';
 
+function DeliveryStatus({ guest }: { guest: ResolvedGuest }) {
+  if (guest.deliveryStatus === 'sent') return <Badge tone="good">נשלח</Badge>;
+  if (guest.deliveryStatus === 'failed') {
+    return <span className="flex min-w-0 items-center gap-1.5"><Badge tone="bad">שגיאה</Badge><span className="truncate text-[0.75rem] text-bad" title={guest.deliveryError || undefined}>{guest.deliveryError || 'יש לבדוק את המספר והחיבור'}</span></span>;
+  }
+  return <Badge tone="neutral">טרם נשלח</Badge>;
+}
+
 function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void }) {
   const replaceGuest = useApp((s) => s.replaceGuest);
   const [name, setName] = React.useState(guest.name);
@@ -157,6 +165,7 @@ export function GuestRow({
               desktop-only column. */}
           {!guest.resolvedAccountId && sideCell && <div className="mt-1 list:hidden">{sideCell}</div>}
           {!guest.valid && <span className="text-[0.75rem] text-bad">מספר לא תקין</span>}
+          <div className="mt-1 list:hidden"><DeliveryStatus guest={guest} /></div>
           {guest.customMessage && (
             <span className="text-[0.75rem] text-brand-ink">הודעה אישית</span>
           )}
@@ -170,6 +179,8 @@ export function GuestRow({
         </div>
 
         <div className="hidden min-w-0 truncate text-[0.875rem] list:block">{sideCell}</div>
+
+        <div className="hidden min-w-0 list:flex"><DeliveryStatus guest={guest} /></div>
 
         <div className="flex shrink-0 gap-1">
           <Button

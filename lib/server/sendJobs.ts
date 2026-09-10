@@ -25,10 +25,16 @@ interface State {
 }
 
 const state = singleton<State>('sendJobs', () => ({ workspaces: new Map() }));
-const MIN_DELAY_MS = 4000;
-const MAX_DELAY_MS = 9000;
-const LONG_PAUSE_EVERY = 25;
-const LONG_PAUSE_MS = 30000;
+// This is a deliberately conservative pacing policy for a closed beta. It
+// keeps delivery sequential, avoids a robotic cadence, and gives each account
+// a longer rest after a small batch. It lowers operational risk but cannot
+// guarantee that WhatsApp will not limit an account.
+const MIN_DELAY_MS = 12_000;
+const MAX_DELAY_MS = 26_000;
+const MIN_BATCH_SIZE = 10;
+const MAX_BATCH_SIZE = 16;
+const MIN_LONG_PAUSE_MS = 90_000;
+const MAX_LONG_PAUSE_MS = 180_000;
 const JOBS_FILENAME = 'send-jobs.json';
 
 export type SendTarget = Guest & { accountId: string };
@@ -39,6 +45,29 @@ function jobsFile(workspaceId: string): string {
 
 function randomDelay() {
   return MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
+}
+
+function randomBatchSize() {
+  return MIN_BATCH_SIZE + Math.floor(Math.random() * (MAX_BATCH_SIZE - MIN_BATCH_SIZE + 1));
+}
+
+function randomLongPause() {
+  return MIN_LONG_PAUSE_MS + Math.random() * (MAX_LONG_PAUSE_MS - MIN_LONG_PAUSE_MS);
+}
+
+function deliveryFailureReason(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+  const normalized = message.toLowerCase();
+  if (/not.*(registered|whatsapp)|no.*whatsapp|jid.*invalid/.test(normalized)) {
+    return 'לא נמצא חשבון WhatsApp עבור המספר הזה';
+  }
+  if (/invalid.*(phone|number)|phone.*invalid/.test(normalized)) {
+    return 'מספר הטלפון אינו תקין';
+  }
+  if (/disconnect|connection.*closed|not connected|logged out/.test(normalized)) {
+    return 'חיבור ה־WhatsApp נותק. חברו אותו מחדש ונסו שוב';
+  }
+  return 'השליחה נכשלה. אפשר לנסות שוב לאחר בדיקת המספר והחיבור';
 }
 
 function jobId() {
@@ -137,25 +166,42 @@ async function runJob(
   messageTemplate: string,
   media: OutgoingMedia | null
 ) {
+  let nextPauseAfter = randomBatchSize();
   for (let i = 0; i < guests.length; i++) {
     const guest = guests[i];
     job.current = guest.name;
     updateJob(workspaceId, workspace, job);
     try {
       await accounts.sendMessage(workspaceId, guest.accountId, guest.phone!, renderMessage(messageTemplate, guest), media);
-      guestStore.update(workspaceId, guest.id, { invited: true });
+      guestStore.update(workspaceId, guest.id, {
+        invited: true,
+        deliveryStatus: 'sent',
+        deliveryError: null,
+        lastSentAt: new Date().toISOString(),
+      });
       job.sent++;
     } catch (error) {
       const failure: SendFailure = {
+        guestId: guest.id,
         name: guest.name,
         phone: guest.phoneRaw || guest.phone || '',
-        reason: (error as Error).message,
+        reason: deliveryFailureReason(error),
       };
       job.failed.push(failure);
+      guestStore.update(workspaceId, guest.id, {
+        invited: false,
+        deliveryStatus: 'failed',
+        deliveryError: failure.reason,
+      });
     }
     updateJob(workspaceId, workspace, job);
     if (i !== guests.length - 1) {
-      await sleep((i + 1) % LONG_PAUSE_EVERY === 0 ? LONG_PAUSE_MS : randomDelay());
+      if (i + 1 === nextPauseAfter) {
+        await sleep(randomLongPause());
+        nextPauseAfter += randomBatchSize();
+      } else {
+        await sleep(randomDelay());
+      }
     }
   }
   job.current = null;

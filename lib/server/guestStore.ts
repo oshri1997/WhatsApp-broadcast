@@ -10,7 +10,12 @@ interface State {
 }
 
 function defaults() {
-  return { invited: false } satisfies Pick<Guest, 'invited'>;
+  return {
+    invited: false,
+    deliveryStatus: 'pending' as const,
+    deliveryError: null,
+    lastSentAt: null,
+  } satisfies Pick<Guest, 'invited' | 'deliveryStatus' | 'deliveryError' | 'lastSentAt'>;
 }
 
 const states = singleton<Map<string, State>>('guestStore-workspaces', () => new Map());
@@ -26,7 +31,9 @@ function stateFor(workspaceId: string): State {
   let state: State;
   try {
     const parsed = JSON.parse(fs.readFileSync(dataFile(workspaceId), 'utf8'));
-    const guests: Guest[] = Array.isArray(parsed) ? parsed : [];
+    const guests: Guest[] = Array.isArray(parsed)
+      ? parsed.map((guest) => ({ ...defaults(), ...guest }))
+      : [];
     state = { guests, nextId: guests.reduce((max, guest) => Math.max(max, guest.id), 0) + 1 };
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;

@@ -259,6 +259,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <span>שם המוזמן</span>
           <span>טלפון</span>
           <span>צד</span>
+          <span>סטטוס שליחה</span>
           <span />
         </div>
 
