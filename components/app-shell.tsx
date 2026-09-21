@@ -24,6 +24,7 @@ function useLiveData() {
   const refreshGuests = useApp((s) => s.refreshGuests);
   const refreshAccounts = useApp((s) => s.refreshAccounts);
   const refreshMedia = useApp((s) => s.refreshMedia);
+  const refreshTemplates = useApp((s) => s.refreshTemplates);
 
   React.useEffect(() => {
     // Accounts first: guest -> account resolution depends on how many are
@@ -32,6 +33,7 @@ function useLiveData() {
       if (document.visibilityState === 'hidden') return;
       void refreshAccounts().then(() => refreshGuests({ resetSelection: true }));
       void refreshMedia();
+      void refreshTemplates();
     };
     refreshVisibleData();
 
@@ -45,7 +47,7 @@ function useLiveData() {
       clearInterval(accountsTimer);
       document.removeEventListener('visibilitychange', refreshVisibleData);
     };
-  }, [refreshGuests, refreshAccounts, refreshMedia]);
+  }, [refreshGuests, refreshAccounts, refreshMedia, refreshTemplates]);
 }
 
 function ConnectionPill() {

@@ -6,6 +6,7 @@ import type {
   AccountView,
   InvitationMediaView,
   ResolvedGuest,
+  SavedMessageTemplate,
   SendJob,
 } from './types';
 import { api, apiJson } from './api';
@@ -16,6 +17,7 @@ interface AppState {
   guests: ResolvedGuest[];
   accounts: AccountView[];
   media: InvitationMediaView;
+  templates: SavedMessageTemplate[];
   selected: Set<number>;
   search: string;
   message: string;
@@ -27,11 +29,13 @@ interface AppState {
   refreshGuests: (options?: { resetSelection?: boolean }) => Promise<void>;
   refreshAccounts: () => Promise<void>;
   refreshMedia: () => Promise<void>;
+  refreshTemplates: () => Promise<void>;
 
   setSearch: (search: string) => void;
   setMessage: (message: string) => void;
   setEditingGuestId: (id: number | null) => void;
   setMedia: (media: InvitationMediaView) => void;
+  setTemplates: (templates: SavedMessageTemplate[]) => void;
   setJob: (job: SendJob | null) => void;
 
   toggleGuest: (id: number, selected: boolean) => void;
@@ -52,6 +56,7 @@ export const useApp = create<AppState>((set, get) => ({
   guests: [],
   accounts: [],
   media: { url: null, kind: null, filename: null },
+  templates: [],
   selected: new Set<number>(),
   search: '',
   message: MESSAGE_TEMPLATES[0].text,
@@ -103,10 +108,20 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
+  refreshTemplates: async () => {
+    try {
+      const { templates } = await api<{ templates: SavedMessageTemplate[] }>('/api/message-templates');
+      set({ templates });
+    } catch {
+      /* see refreshGuests */
+    }
+  },
+
   setSearch: (search) => set({ search }),
   setMessage: (message) => set({ message }),
   setEditingGuestId: (editingGuestId) => set({ editingGuestId }),
   setMedia: (media) => set({ media }),
+  setTemplates: (templates) => set({ templates }),
   setJob: (job) => set({ job }),
 
   toggleGuest: (id, selected) =>

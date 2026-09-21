@@ -15,7 +15,8 @@ function defaults() {
     deliveryStatus: 'pending' as const,
     deliveryError: null,
     lastSentAt: null,
-  } satisfies Pick<Guest, 'invited' | 'deliveryStatus' | 'deliveryError' | 'lastSentAt'>;
+    templateId: null,
+  } satisfies Pick<Guest, 'invited' | 'deliveryStatus' | 'deliveryError' | 'lastSentAt' | 'templateId'>;
 }
 
 const states = singleton<Map<string, State>>('guestStore-workspaces', () => new Map());

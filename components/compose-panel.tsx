@@ -3,9 +3,8 @@
 import * as React from 'react';
 import { Select } from '@base-ui/react/select';
 import { toast } from 'sonner';
-import type { InvitationMediaView, ResolvedGuest } from '@/lib/types';
+import type { InvitationMediaView, ResolvedGuest, SavedMessageTemplate } from '@/lib/types';
 import { api, apiJson, hasMultipleAccounts, run, useApp } from '@/lib/store';
-import { MESSAGE_TEMPLATES } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Hint, Label, Textarea } from '@/components/ui/field';
 import { useConfirm } from '@/components/ui/confirm';
@@ -17,14 +16,15 @@ const MAX_MEDIA_BYTES = 64 * 1024 * 1024;
 function TemplatePicker() {
   const message = useApp((s) => s.message);
   const setMessage = useApp((s) => s.setMessage);
+  const templates = useApp((s) => s.templates);
   const confirm = useConfirm();
 
   return (
     <Select.Root
-      items={MESSAGE_TEMPLATES.map((t) => ({ label: t.label, value: t.label }))}
+      items={templates.map((template) => ({ label: template.label, value: template.id }))}
       value={null}
       onValueChange={async (value) => {
-        const template = MESSAGE_TEMPLATES.find((t) => t.label === value);
+        const template = templates.find((item) => item.id === value);
         if (!template) return;
         if (message.trim() && message.trim() !== template.text.trim()) {
           const ok = await confirm({
@@ -51,7 +51,7 @@ function TemplatePicker() {
           */}
           <Select.Popup className="card min-w-[var(--anchor-width)] origin-[var(--transform-origin)] p-1 transition-[opacity,scale] duration-150 ease-snap data-ending-style:scale-[0.97] data-ending-style:opacity-0 data-starting-style:scale-[0.97] data-starting-style:opacity-0">
             <Select.List>
-              {MESSAGE_TEMPLATES.map((template) => (
+              {templates.map((template) => (
                 <Select.Item
                   key={template.label}
                   value={template.label}
@@ -68,6 +68,48 @@ function TemplatePicker() {
         </Select.Positioner>
       </Select.Portal>
     </Select.Root>
+  );
+}
+
+function SaveTemplate() {
+  const message = useApp((s) => s.message);
+  const refreshTemplates = useApp((s) => s.refreshTemplates);
+  const [label, setLabel] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+
+  const save = async () => {
+    if (!label.trim()) {
+      toast.error('יש לתת שם לתבנית לפני השמירה');
+      return;
+    }
+    if (!message.trim()) {
+      toast.error('לא ניתן לשמור תבנית ריקה');
+      return;
+    }
+    setSaving(true);
+    const result = await run(() =>
+      apiJson<{ template: SavedMessageTemplate }>('/api/message-templates', 'POST', { label, text: message })
+    );
+    setSaving(false);
+    if (!result) return;
+    setLabel('');
+    await refreshTemplates();
+    toast.success(`התבנית „${result.template.label}” נשמרה`);
+  };
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <input
+        value={label}
+        onChange={(event) => setLabel(event.target.value)}
+        placeholder="שם לתבנית חדשה"
+        aria-label="שם לתבנית חדשה"
+        className="control h-10 min-w-48 flex-1 text-start"
+      />
+      <Button size="sm" variant="secondary" disabled={saving} onClick={save}>
+        {saving ? 'שומר…' : 'שמירה כתבנית'}
+      </Button>
+    </div>
   );
 }
 
@@ -148,6 +190,7 @@ export function ComposePanel() {
   const guests = useApp((s) => s.guests);
   const accounts = useApp((s) => s.accounts);
   const selected = useApp((s) => s.selected);
+  const templates = useApp((s) => s.templates);
   const attachment = useApp((s) => s.media);
   const setJob = useApp((s) => s.setJob);
   const confirm = useConfirm();
@@ -156,9 +199,13 @@ export function ComposePanel() {
   const anyReady = accounts.some((a) => a.status === 'READY');
   const selectedGuests = guests.filter((g) => selected.has(g.id));
   const previewGuest: ResolvedGuest | undefined = selectedGuests[0] ?? guests[0];
+  const selectedTemplate = previewGuest?.templateId
+    ? templates.find((template) => template.id === previewGuest.templateId)
+    : undefined;
+  const previewBase = previewGuest?.customMessage?.trim() || selectedTemplate?.text || message;
   const preview = previewGuest
-    ? message.replaceAll('{{שם}}', previewGuest.name).replaceAll('{{name}}', previewGuest.name)
-    : message;
+    ? previewBase.replaceAll('{{שם}}', previewGuest.name).replaceAll('{{name}}', previewGuest.name)
+    : previewBase;
 
   const personalCount = selectedGuests.filter((g) => g.customMessage?.trim()).length;
 
@@ -227,6 +274,7 @@ export function ComposePanel() {
             הקובץ יישלח לכולם עם ההודעה כתיאור מתחתיו. אפשר להעלות קובץ עד 64MB; סרטונים קטנים
             עדיפים כדי לשמור על שליחה יציבה ב־WhatsApp.
           </Hint>
+          <SaveTemplate />
           <MediaUpload />
         </div>
 

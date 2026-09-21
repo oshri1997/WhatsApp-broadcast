@@ -3,6 +3,7 @@ import * as accounts from '@/lib/server/accounts';
 import * as guestStore from '@/lib/server/guestStore';
 import * as media from '@/lib/server/media';
 import * as sendJobs from '@/lib/server/sendJobs';
+import * as templateStore from '@/lib/server/templateStore';
 import { resolveAccount } from '@/lib/server/resolve';
 import { requireWorkspaceId } from '@/lib/server/requestWorkspace';
 
@@ -27,10 +28,15 @@ export async function POST(request: Request) {
   }
 
   const idSet = new Set(guestIds);
+  const templatesById = new Map(templateStore.list(workspaceId).map((template) => [template.id, template.text]));
   const selected = guestStore
     .getAll(workspaceId)
     .filter((g) => idSet.has(g.id) && g.valid)
-    .map((g) => ({ ...g, accountId: resolveAccount(workspaceId, g)?.id ?? null }))
+    .map((g) => ({
+      ...g,
+      accountId: resolveAccount(workspaceId, g)?.id ?? null,
+      templateText: g.templateId ? templatesById.get(g.templateId) ?? message : message,
+    }))
     .filter((g): g is (typeof g & { accountId: string }) => g.accountId !== null);
 
   if (selected.length === 0) {

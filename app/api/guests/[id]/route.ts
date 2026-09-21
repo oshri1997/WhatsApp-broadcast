@@ -18,11 +18,12 @@ export async function PATCH(request: Request, { params }: Context) {
     return NextResponse.json({ error: 'מוזמן לא נמצא' }, { status: 404 });
   }
 
-  const { name, phone, side, customMessage } = (await request.json().catch(() => ({}))) as {
+  const { name, phone, side, customMessage, templateId } = (await request.json().catch(() => ({}))) as {
     name?: string;
     phone?: string;
     side?: string;
     customMessage?: string;
+    templateId?: string | null;
   };
   const patch: Partial<Guest> = {};
 
@@ -49,6 +50,9 @@ export async function PATCH(request: Request, { params }: Context) {
   }
   if (customMessage !== undefined) {
     patch.customMessage = customMessage.trim() ? customMessage : null;
+  }
+  if (templateId !== undefined) {
+    patch.templateId = templateId?.trim() || null;
   }
 
   const updated = guestStore.update(workspaceId, id, patch)!;

@@ -1,5 +1,13 @@
 export type DeliveryStatus = 'pending' | 'sent' | 'failed';
 
+export interface SavedMessageTemplate {
+  id: string;
+  label: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Guest {
   id: number;
   name: string;
@@ -8,6 +16,8 @@ export interface Guest {
   side: string;
   valid: boolean;
   customMessage?: string | null;
+  /** A saved template chosen for this guest. Null means use the general message. */
+  templateId?: string | null;
   invited: boolean;
   /** Outcome of the most recent attempt for this guest. */
   deliveryStatus: DeliveryStatus;

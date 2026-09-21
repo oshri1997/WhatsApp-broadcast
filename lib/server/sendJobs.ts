@@ -37,7 +37,7 @@ const MIN_LONG_PAUSE_MS = 90_000;
 const MAX_LONG_PAUSE_MS = 180_000;
 const JOBS_FILENAME = 'send-jobs.json';
 
-export type SendTarget = Guest & { accountId: string };
+export type SendTarget = Guest & { accountId: string; templateText: string };
 
 function jobsFile(workspaceId: string): string {
   return path.join(workspaceDataDir(workspaceId), JOBS_FILENAME);
@@ -121,8 +121,8 @@ function updateJob(workspaceId: string, workspace: WorkspaceState, job: Persiste
   persist(workspaceId, workspace);
 }
 
-function renderMessage(template: string, guest: Pick<Guest, 'name' | 'customMessage'>) {
-  const base = guest.customMessage?.trim() ? guest.customMessage : template;
+function renderMessage(template: string, guest: Pick<SendTarget, 'name' | 'customMessage' | 'templateText'>) {
+  const base = guest.customMessage?.trim() ? guest.customMessage : guest.templateText || template;
   return base.replaceAll('{{שם}}', guest.name).replaceAll('{{name}}', guest.name);
 }
 

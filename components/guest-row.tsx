@@ -22,13 +22,15 @@ function DeliveryStatus({ guest }: { guest: ResolvedGuest }) {
 
 function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void }) {
   const replaceGuest = useApp((s) => s.replaceGuest);
+  const templates = useApp((s) => s.templates);
   const [name, setName] = React.useState(guest.name);
   const [phone, setPhone] = React.useState(guest.phoneRaw || guest.phone || '');
   const [side, setSide] = React.useState(guest.side || '');
   const [customMessage, setCustomMessage] = React.useState(guest.customMessage || '');
+  const [templateId, setTemplateId] = React.useState(guest.templateId || '');
   const [saving, setSaving] = React.useState(false);
 
-  const save = async (message: string) => {
+  const save = async (message: string, selectedTemplateId = templateId) => {
     setSaving(true);
     const result = await run(() =>
       apiJson<{ guest: ResolvedGuest }>(`/api/guests/${guest.id}`, 'PATCH', {
@@ -36,6 +38,7 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
         phone,
         side,
         customMessage: message,
+        templateId: selectedTemplateId,
       })
     );
     setSaving(false);
@@ -78,12 +81,25 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
       </div>
 
       <div>
-        <Label htmlFor={`msg-${guest.id}`}>הודעה אישית (אם ריק — תישלח ההודעה הכללית)</Label>
+        <Label htmlFor={`template-${guest.id}`}>תבנית למוזמן</Label>
+        <select
+          id={`template-${guest.id}`}
+          value={templateId}
+          onChange={(event) => setTemplateId(event.target.value)}
+          className="control mt-1 h-10 w-full text-start"
+        >
+          <option value="">ההודעה הכללית שנכתבה במסך השליחה</option>
+          {templates.map((template) => <option key={template.id} value={template.id}>{template.label}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <Label htmlFor={`msg-${guest.id}`}>התאמה אישית להודעה (אופציונלי)</Label>
         <Textarea
           id={`msg-${guest.id}`}
           rows={3}
           value={customMessage}
-          placeholder={`הודעה אישית ל${guest.name}`}
+          placeholder="אם תמלאו כאן טקסט, הוא יחליף רק עבור מוזמן זה את התבנית שנבחרה"
           onChange={(e) => setCustomMessage(e.target.value)}
         />
       </div>
@@ -92,14 +108,15 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
         <Button size="sm" variant="primary" disabled={saving} onClick={() => save(customMessage)}>
           שמירה
         </Button>
-        {guest.customMessage && (
+        {(guest.customMessage || guest.templateId) && (
           <Button
             size="sm"
             variant="secondary"
             disabled={saving}
             onClick={() => {
               setCustomMessage('');
-              save('');
+              setTemplateId('');
+              save('', '');
             }}
           >
             חזרה להודעה הכללית
@@ -125,10 +142,12 @@ export function GuestRow({
   const editingGuestId = useApp((s) => s.editingGuestId);
   const setEditingGuestId = useApp((s) => s.setEditingGuestId);
   const refreshGuests = useApp((s) => s.refreshGuests);
+  const templates = useApp((s) => s.templates);
   const confirm = useConfirm();
 
   const editing = editingGuestId === guest.id;
   const sendable = isSendable(guest, multipleAccounts);
+  const template = templates.find((item) => item.id === guest.templateId);
 
   const sideCell = guest.resolvedAccountId ? (
     <span className="text-muted">{guest.resolvedAccountLabel}</span>
@@ -165,6 +184,7 @@ export function GuestRow({
               desktop-only column. */}
           {!guest.resolvedAccountId && sideCell && <div className="mt-1 list:hidden">{sideCell}</div>}
           {!guest.valid && <span className="text-[0.75rem] text-bad">מספר לא תקין</span>}
+          {template && <div className="mt-1 text-[0.75rem] text-brand-ink list:hidden">תבנית: {template.label}</div>}
           <div className="mt-1 list:hidden"><DeliveryStatus guest={guest} /></div>
           {guest.customMessage && (
             <span className="text-[0.75rem] text-brand-ink">הודעה אישית</span>
@@ -179,6 +199,10 @@ export function GuestRow({
         </div>
 
         <div className="hidden min-w-0 truncate text-[0.875rem] list:block">{sideCell}</div>
+
+        <div className="hidden min-w-0 truncate text-[0.8125rem] text-muted list:block" title={template?.label}>
+          {template?.label || 'כללית'}
+        </div>
 
         <div className="hidden min-w-0 list:flex"><DeliveryStatus guest={guest} /></div>
 

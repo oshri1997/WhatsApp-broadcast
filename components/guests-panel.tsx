@@ -202,7 +202,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
             סמן הכול
           </Button>
           <HelpTip label="עזרה לסימון הכול">בוחר את כל המוזמנים התקינים שניתן לשלוח אליהם, גם אם הם לא מופיעים בחיפוש.</HelpTip>
-          <Button size="sm" variant="ghost" onClick={clearSelection}>
+          <Button size="sm" variant="secondary" onClick={clearSelection}>
             הסר סימון מכולם
           </Button>
           <Button size="sm" variant="primary" onClick={onGoToCompose} disabled={selectedCount === 0}>
@@ -259,6 +259,7 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
           <span>שם המוזמן</span>
           <span>טלפון</span>
           <span>צד</span>
+          <span>תבנית</span>
           <span>סטטוס שליחה</span>
           <span />
         </div>
