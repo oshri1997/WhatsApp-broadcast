@@ -18,11 +18,12 @@ function TemplatePicker() {
   const setMessage = useApp((s) => s.setMessage);
   const templates = useApp((s) => s.templates);
   const confirm = useConfirm();
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string | null>(null);
 
   return (
     <Select.Root
       items={templates.map((template) => ({ label: template.label, value: template.id }))}
-      value={null}
+      value={selectedTemplateId}
       onValueChange={async (value) => {
         const template = templates.find((item) => item.id === value);
         if (!template) return;
@@ -35,6 +36,7 @@ function TemplatePicker() {
           if (!ok) return;
         }
         setMessage(template.text);
+        setSelectedTemplateId(template.id);
       }}
     >
       <Select.Trigger className="control flex h-10 items-center justify-between gap-2 text-start">
@@ -54,7 +56,7 @@ function TemplatePicker() {
               {templates.map((template) => (
                 <Select.Item
                   key={template.label}
-                  value={template.label}
+                  value={template.id}
                   className="flex cursor-default items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-brand-soft data-highlighted:text-brand-ink"
                 >
                   <Select.ItemIndicator>
@@ -262,6 +264,7 @@ export function ComposePanel() {
             מוזמן עם הודעה אישית יקבל אותה במקום הטקסט הזה
             {personalCount > 0 && ` (${personalCount} מהנבחרים)`}.
           </Hint>
+          <SaveTemplate />
         </div>
 
         <div>
@@ -274,7 +277,6 @@ export function ComposePanel() {
             הקובץ יישלח לכולם עם ההודעה כתיאור מתחתיו. אפשר להעלות קובץ עד 64MB; סרטונים קטנים
             עדיפים כדי לשמור על שליחה יציבה ב־WhatsApp.
           </Hint>
-          <SaveTemplate />
           <MediaUpload />
         </div>
 
