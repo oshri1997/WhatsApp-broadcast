@@ -26,18 +26,23 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
   const [name, setName] = React.useState(guest.name);
   const [phone, setPhone] = React.useState(guest.phoneRaw || guest.phone || '');
   const [side, setSide] = React.useState(guest.side || '');
-  const [customMessage, setCustomMessage] = React.useState(guest.customMessage || '');
   const [templateId, setTemplateId] = React.useState(guest.templateId || '');
+  const selectedTemplate = templates.find((template) => template.id === templateId);
+  const [customMessage, setCustomMessage] = React.useState(
+    guest.customMessage || selectedTemplate?.text || ''
+  );
   const [saving, setSaving] = React.useState(false);
 
   const save = async (message: string, selectedTemplateId = templateId) => {
+    const templateText = templates.find((template) => template.id === selectedTemplateId)?.text.trim();
+    const personalMessage = message.trim() === templateText ? '' : message;
     setSaving(true);
     const result = await run(() =>
       apiJson<{ guest: ResolvedGuest }>(`/api/guests/${guest.id}`, 'PATCH', {
         name,
         phone,
         side,
-        customMessage: message,
+        customMessage: personalMessage,
         templateId: selectedTemplateId,
       })
     );
@@ -85,7 +90,11 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
         <select
           id={`template-${guest.id}`}
           value={templateId}
-          onChange={(event) => setTemplateId(event.target.value)}
+          onChange={(event) => {
+            const nextTemplateId = event.target.value;
+            setTemplateId(nextTemplateId);
+            setCustomMessage(templates.find((template) => template.id === nextTemplateId)?.text || '');
+          }}
           className="control mt-1 h-10 w-full text-start"
         >
           <option value="">ההודעה הכללית שנכתבה במסך השליחה</option>
@@ -94,14 +103,19 @@ function Editor({ guest, onClose }: { guest: ResolvedGuest; onClose: () => void 
       </div>
 
       <div>
-        <Label htmlFor={`msg-${guest.id}`}>התאמה אישית להודעה (אופציונלי)</Label>
+        <Label htmlFor={`msg-${guest.id}`}>התאמה אישית למוזמן</Label>
         <Textarea
           id={`msg-${guest.id}`}
           rows={3}
           value={customMessage}
-          placeholder="אם תמלאו כאן טקסט, הוא יחליף רק עבור מוזמן זה את התבנית שנבחרה"
+          placeholder={selectedTemplate ? 'התבנית שנבחרה תיטען כאן לעריכה אישית' : 'בחרו תבנית כדי לערוך עותק אישי למוזמן זה'}
           onChange={(e) => setCustomMessage(e.target.value)}
         />
+        <p className="mt-1.5 text-[0.8125rem] leading-5 text-muted">
+          {selectedTemplate
+            ? 'הטקסט כאן התחיל מהתבנית שנבחרה. שינוי ושמירה ישפיעו רק על מוזמן זה.'
+            : 'בחרו תבנית למעלה, והטקסט שלה ייטען כאן לעריכה אישית.'}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -149,8 +163,8 @@ export function GuestRow({
   const sendable = isSendable(guest, multipleAccounts);
   const template = templates.find((item) => item.id === guest.templateId);
 
-  const sideCell = guest.resolvedAccountId ? (
-    <span className="text-muted">{guest.resolvedAccountLabel}</span>
+  const sideCell = guest.side && guest.resolvedAccountId ? (
+    <span className="text-muted">{guest.side}</span>
   ) : guest.side ? (
     <Badge tone="warn">⚠ ״{guest.side}״ לא מזוהה</Badge>
   ) : multipleAccounts ? (

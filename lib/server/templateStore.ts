@@ -67,6 +67,17 @@ export function create(workspaceId: string, label: string, text: string): SavedM
   return template;
 }
 
+export function hasDuplicate(workspaceId: string, label: string, text: string, exceptId?: string): boolean {
+  const normalizedLabel = label.trim().toLocaleLowerCase('he');
+  const normalizedText = text.trim().replace(/\s+/g, ' ');
+  return stateFor(workspaceId).some((template) =>
+    template.id !== exceptId && (
+      template.label.trim().toLocaleLowerCase('he') === normalizedLabel ||
+      template.text.trim().replace(/\s+/g, ' ') === normalizedText
+    )
+  );
+}
+
 export function update(workspaceId: string, id: string, patch: Pick<SavedMessageTemplate, 'label' | 'text'>): SavedMessageTemplate | null {
   const template = stateFor(workspaceId).find((item) => item.id === id);
   if (!template) return null;

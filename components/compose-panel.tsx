@@ -75,8 +75,11 @@ function TemplatePicker() {
 
 function SaveTemplate() {
   const message = useApp((s) => s.message);
+  const setMessage = useApp((s) => s.setMessage);
+  const templates = useApp((s) => s.templates);
   const refreshTemplates = useApp((s) => s.refreshTemplates);
   const [label, setLabel] = React.useState('');
+  const [editingId, setEditingId] = React.useState('');
   const [saving, setSaving] = React.useState(false);
 
   const save = async () => {
@@ -89,28 +92,58 @@ function SaveTemplate() {
       return;
     }
     setSaving(true);
-    const result = await run(() =>
-      apiJson<{ template: SavedMessageTemplate }>('/api/message-templates', 'POST', { label, text: message })
+    const result = await run(() => editingId
+      ? apiJson<{ template: SavedMessageTemplate }>(`/api/message-templates/${editingId}`, 'PATCH', { label, text: message })
+      : apiJson<{ template: SavedMessageTemplate }>('/api/message-templates', 'POST', { label, text: message })
     );
     setSaving(false);
     if (!result) return;
-    setLabel('');
     await refreshTemplates();
-    toast.success(`התבנית „${result.template.label}” נשמרה`);
+    if (!editingId) setEditingId(result.template.id);
+    toast.success(editingId ? `התבנית „${result.template.label}” עודכנה` : `התבנית „${result.template.label}” נשמרה`);
   };
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <input
-        value={label}
-        onChange={(event) => setLabel(event.target.value)}
-        placeholder="שם לתבנית חדשה"
-        aria-label="שם לתבנית חדשה"
-        className="control h-10 min-w-48 flex-1 text-start"
-      />
-      <Button size="sm" variant="secondary" disabled={saving} onClick={save}>
-        {saving ? 'שומר…' : 'שמירה כתבנית'}
-      </Button>
+    <div className="mt-3 grid gap-2 rounded-[var(--radius-control)] border border-line bg-surface-2 p-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="grid min-w-48 flex-1 gap-1 text-[0.8125rem] font-medium text-muted">
+          עריכת תבנית קיימת
+          <select
+            value={editingId}
+            onChange={(event) => {
+              const id = event.target.value;
+              setEditingId(id);
+              const template = templates.find((item) => item.id === id);
+              if (template) {
+                setLabel(template.label);
+                setMessage(template.text);
+              } else {
+                setLabel('');
+              }
+            }}
+            className="control h-10 text-start"
+          >
+            <option value="">תבנית חדשה</option>
+            {templates.map((template) => <option key={template.id} value={template.id}>{template.label}</option>)}
+          </select>
+        </label>
+        <label className="grid min-w-48 flex-1 gap-1 text-[0.8125rem] font-medium text-muted">
+          שם התבנית
+          <input
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder="לדוגמה: משפחה קרובה"
+            aria-label="שם התבנית"
+            className="control h-10 text-start"
+          />
+        </label>
+        <Button size="sm" variant="secondary" disabled={saving} onClick={save}>
+          {saving ? 'שומר…' : editingId ? 'עדכון התבנית' : 'שמירה כתבנית חדשה'}
+        </Button>
+      </div>
+      <p className="text-[0.8125rem] leading-5 text-muted">
+        בחירת תבנית כאן טוענת אותה לתיבת ההודעה לעריכה. עדכון משפיע על כל מי שמשתמש בתבנית; התאמה אישית למוזמן נשארת פרטית. לא ניתן לשמור תבנית כפולה.
+      </p>
     </div>
   );
 }

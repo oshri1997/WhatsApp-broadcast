@@ -10,7 +10,12 @@ type Context = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, { params }: Context) {
   const { label, text } = (await request.json().catch(() => ({}))) as { label?: string; text?: string };
   if (!label?.trim() || !text?.trim()) return NextResponse.json({ error: 'יש לתת שם ותוכן לתבנית' }, { status: 400 });
-  const template = templateStore.update(await requireWorkspaceId(), (await params).id, { label: label.trim(), text: text.trim() });
+  const workspaceId = await requireWorkspaceId();
+  const id = (await params).id;
+  if (templateStore.hasDuplicate(workspaceId, label, text, id)) {
+    return NextResponse.json({ error: 'כבר קיימת תבנית עם שם או תוכן זהה' }, { status: 409 });
+  }
+  const template = templateStore.update(workspaceId, id, { label: label.trim(), text: text.trim() });
   if (!template) return NextResponse.json({ error: 'התבנית לא נמצאה' }, { status: 404 });
   return NextResponse.json({ template });
 }
