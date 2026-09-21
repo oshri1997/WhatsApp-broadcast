@@ -163,11 +163,16 @@ export function GuestRow({
   const editing = editingGuestId === guest.id;
   const sendable = isSendable(guest, multipleAccounts);
   const template = templates.find((item) => item.id === guest.templateId);
+  const activeTemplate = templates.find(
+    (item) => item.text.trim().replace(/\s+/g, ' ') === globalMessage.trim().replace(/\s+/g, ' ')
+  );
   const messageSource = guest.customMessage
     ? { label: 'הודעה אישית', title: guest.customMessage }
     : template
       ? { label: template.label, title: template.text }
-      : { label: 'הודעה כללית פעילה', title: globalMessage };
+      : activeTemplate
+        ? { label: activeTemplate.label, title: activeTemplate.text }
+        : { label: 'נוסח שלא נשמר כתבנית', title: globalMessage };
 
   const sideCell = guest.side && guest.resolvedAccountId ? (
     <span className="text-muted">{guest.side}</span>
