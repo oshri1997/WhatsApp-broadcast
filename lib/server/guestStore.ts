@@ -93,6 +93,24 @@ export function update(workspaceId: string, id: number, patch: Partial<Guest>): 
   return guest;
 }
 
+/** Assign one saved template to several guests in a single durable write. */
+export function assignTemplate(workspaceId: string, ids: number[], templateId: string): number {
+  const state = stateFor(workspaceId);
+  const wanted = new Set(ids);
+  let updated = 0;
+
+  for (const guest of state.guests) {
+    if (!wanted.has(guest.id)) continue;
+    guest.templateId = templateId;
+    // A deliberately chosen shared template replaces a previous one-off copy.
+    guest.customMessage = null;
+    updated += 1;
+  }
+
+  if (updated > 0) save(workspaceId, state);
+  return updated;
+}
+
 export function remove(workspaceId: string, id: number): boolean {
   const state = stateFor(workspaceId);
   const index = state.guests.findIndex((guest) => guest.id === id);

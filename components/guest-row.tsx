@@ -157,11 +157,17 @@ export function GuestRow({
   const setEditingGuestId = useApp((s) => s.setEditingGuestId);
   const refreshGuests = useApp((s) => s.refreshGuests);
   const templates = useApp((s) => s.templates);
+  const globalMessage = useApp((s) => s.message);
   const confirm = useConfirm();
 
   const editing = editingGuestId === guest.id;
   const sendable = isSendable(guest, multipleAccounts);
   const template = templates.find((item) => item.id === guest.templateId);
+  const messageSource = guest.customMessage
+    ? { label: 'הודעה אישית', title: guest.customMessage }
+    : template
+      ? { label: template.label, title: template.text }
+      : { label: 'הודעה כללית פעילה', title: globalMessage };
 
   const sideCell = guest.side && guest.resolvedAccountId ? (
     <span className="text-muted">{guest.side}</span>
@@ -198,11 +204,10 @@ export function GuestRow({
               desktop-only column. */}
           {!guest.resolvedAccountId && sideCell && <div className="mt-1 list:hidden">{sideCell}</div>}
           {!guest.valid && <span className="text-[0.75rem] text-bad">מספר לא תקין</span>}
-          {template && <div className="mt-1 text-[0.75rem] text-brand-ink list:hidden">תבנית: {template.label}</div>}
+          <div className="mt-1 text-[0.75rem] text-brand-ink list:hidden" title={messageSource.title}>
+            {messageSource.label}
+          </div>
           <div className="mt-1 list:hidden"><DeliveryStatus guest={guest} /></div>
-          {guest.customMessage && (
-            <span className="text-[0.75rem] text-brand-ink">הודעה אישית</span>
-          )}
         </div>
 
         <div
@@ -214,8 +219,8 @@ export function GuestRow({
 
         <div className="hidden min-w-0 truncate text-[0.875rem] list:block">{sideCell}</div>
 
-        <div className="hidden min-w-0 truncate text-[0.8125rem] text-muted list:block" title={template?.label}>
-          {template?.label || 'כללית'}
+        <div className="hidden min-w-0 truncate text-[0.8125rem] text-muted list:block" title={messageSource.title}>
+          {messageSource.label}
         </div>
 
         <div className="hidden min-w-0 list:flex"><DeliveryStatus guest={guest} /></div>

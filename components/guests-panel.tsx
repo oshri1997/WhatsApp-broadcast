@@ -160,6 +160,67 @@ function AddGuestForm() {
   );
 }
 
+function BulkTemplateAction() {
+  const selected = useApp((s) => s.selected);
+  const templates = useApp((s) => s.templates);
+  const refreshGuests = useApp((s) => s.refreshGuests);
+  const confirm = useConfirm();
+  const [templateId, setTemplateId] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const selectedCount = selected.size;
+
+  if (selectedCount === 0) return null;
+
+  const apply = async () => {
+    const template = templates.find((item) => item.id === templateId);
+    if (!template) {
+      toast.error('יש לבחור תבנית לפני ההחלה');
+      return;
+    }
+    const ok = await confirm({
+      title: `להחיל את „${template.label}” על ${selectedCount} מוזמנים?`,
+      description: 'התבנית תחליף גם התאמות אישיות קיימות אצל המוזמנים המסומנים בלבד.',
+      confirmLabel: 'החלת התבנית',
+    });
+    if (!ok) return;
+
+    setSaving(true);
+    const result = await run(() => apiJson<{ updated: number }>('/api/guests/bulk-template', 'PATCH', {
+      guestIds: [...selected],
+      templateId,
+    }));
+    setSaving(false);
+    if (!result) return;
+    await refreshGuests();
+    toast.success(`התבנית הוחלה על ${result.updated} מוזמנים`);
+  };
+
+  return (
+    <div className="flex flex-wrap items-end gap-2 rounded-[var(--radius-card)] border border-brand/25 bg-brand-soft/40 p-3 transition-colors duration-150">
+      <div className="min-w-52 flex-1">
+        <label htmlFor="bulk-template" className="mb-1 block text-[0.8125rem] font-semibold text-ink">
+          שינוי תבנית ל־{selectedCount} המסומנים
+        </label>
+        <select
+          id="bulk-template"
+          value={templateId}
+          onChange={(event) => setTemplateId(event.target.value)}
+          className="control h-10 w-full bg-surface text-sm"
+        >
+          <option value="">בחירת תבנית…</option>
+          {templates.map((template) => <option key={template.id} value={template.id}>{template.label}</option>)}
+        </select>
+      </div>
+      <Button size="sm" variant="primary" disabled={!templateId || saving} onClick={apply}>
+        {saving ? 'מעדכן…' : 'החלה על המסומנים'}
+      </Button>
+      <HelpTip label="מה קורה בהחלת תבנית קבוצתית?">
+        הפעולה משנה רק את המוזמנים שמסומנים כרגע, ומחליפה אצלם התאמה אישית קודמת בתבנית שנבחרה.
+      </HelpTip>
+    </div>
+  );
+}
+
 export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
   const guests = useApp((s) => s.guests);
   const accounts = useApp((s) => s.accounts);
@@ -209,6 +270,8 @@ export function GuestsPanel({ onGoToCompose }: { onGoToCompose: () => void }) {
             לשליחת ההזמנה ({selectedCount})
           </Button>
         </div>
+
+        <BulkTemplateAction />
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[0.8125rem] text-muted">
